@@ -37,9 +37,56 @@ A skeleton project was provided, which was created in `R2018b`, therefore the sa
 | **Stateflow**               | `9.2`  |  |
 | **Fixed-Point Designer**    | `6.2`  |  |
 | **Control System Toolbox**  | `10.5` |  |
+| **Simulink Test**           | `2.5`  | Required for opening the embedded `RLUb_HIL` test harness used as the FPGA HDL top model. |
 | **Embedded Coder**          | `7.1`  |  |
 | **Embedded Coder Support Package for Texas Instruments C2000 Processors** | `18.2.5` |  |
 | **MATLAB Support for MinGW-x64 C/C++ Compiler** | `18.2.0` |  |
+
+## FPGA HDL generation
+
+Before generating FPGA HDL, switch to the `RLUb_HIL` test harness. Do not use `Plant/RLUb_DTFX` or the inner `RLUb_DTFX` block directly as the DUT, because the R2018b workflow fails on the bus-element ports. Opening the `RLUb_HIL` harness requires the **Simulink Test** addon/license.
+
+The FPGA plant/HIL top is not stored as a separate `RLUb_HIL.slx` model. It is an embedded Simulink Test harness inside `models/RLUb.slx`.
+
+| Harness | Owner subsystem |
+|---|---|
+| `RLUb_HIL` | `RLUb/Plant/RLUb_DTFX/RLUb_DTFX` |
+
+Because of this, the **Simulink Test** addon/license is required to open the harness before running HDL Coder. Without Simulink Test, the model may appear to have no `RLUb_HIL` model even though the harness data is present in the `.slx` file.
+
+Use the GUI workflow below in MATLAB R2018b:
+
+1. Open the project working folder `amer_hil/amer_hil`.
+2. Run the project initialization used by the model, including `RLUb_init` and `xilinxpath`.
+3. Open `models/RLUb.slx`.
+4. Select the block `RLUb/Plant/RLUb_DTFX/RLUb_DTFX`.
+5. Open the Simulink Test harness list from the block context menu or the Simulink Test toolbar.
+6. Open the `RLUb_HIL` harness.
+7. In the `RLUb_HIL` harness window, open **Code > HDL Code > HDL Workflow Advisor**.
+8. Run the HDL Workflow Advisor tasks using the settings below.
+
+In HDL Workflow Advisor, keep the top-level harness `RLUb_HIL` as the HDL DUT. Do not select the inner `RLUb/Plant/RLUb_DTFX/...` subsystem directly, because the inner plant block has bus-element ports and is not a valid standalone DUT for this R2018b workflow.
+
+Use these HDL Workflow Advisor settings:
+
+| Setting | Value |
+|---|---|
+| Workflow | `IP Core Generation` |
+| Target platform | `AMER_HIL` |
+| Reference design | `AMER design with HiTerm` |
+| Synthesis tool | `Xilinx Vivado` |
+| FPGA family | `Zynq` |
+| Device | `xc7z010` |
+| Package | `clg400` |
+| Speed | `-1` |
+| Target frequency | `20 MHz` |
+| Target language | `VHDL` |
+
+The generated bitstream is written under:
+
+```text
+work\hdl_prj\vivado_ip_prj\vivado_prj.runs\impl_1\design_1_wrapper.bit
+```
 
 ### Code Composer Studio [[link](https://www.ti.com/tool/CCSTUDIO#downloads)]
 
