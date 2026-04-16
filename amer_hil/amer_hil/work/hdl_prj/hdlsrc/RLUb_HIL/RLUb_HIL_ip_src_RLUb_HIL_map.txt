@@ -1,0 +1,22 @@
+ --> RLUb_HIL_ip_src_RLUb_HIL_pkg
+RLUb_HIL/AmerInputs/GateSignals --> RLUb_HIL_ip_src_GateSignals
+RLUb_HIL/AmerInputs/IO Extension Inputs --> RLUb_HIL_ip_src_IO_Extension_Inputs
+RLUb_HIL/AmerInputs/ZyboIO --> RLUb_HIL_ip_src_ZyboIO
+RLUb_HIL/AmerInputs --> RLUb_HIL_ip_src_AmerInputs
+RLUb_HIL/AmerOutputs/Sigma Delta --> RLUb_HIL_ip_src_Sigma_Delta
+RLUb_HIL/AmerOutputs --> RLUb_HIL_ip_src_AmerOutputs
+RLUb_HIL/HitermInputs/Subsystem1 --> RLUb_HIL_ip_src_Subsystem1
+RLUb_HIL/HitermInputs/Subsystem2 --> RLUb_HIL_ip_src_Subsystem2
+RLUb_HIL/HitermInputs/Subsystem3 --> RLUb_HIL_ip_src_Subsystem3
+RLUb_HIL/HitermInputs/Subsystem4 --> RLUb_HIL_ip_src_Subsystem4
+RLUb_HIL/HitermInputs --> RLUb_HIL_ip_src_HitermInputs
+RLUb_HIL/HitermOutputs/Counter --> RLUb_HIL_ip_src_Counter
+RLUb_HIL/HitermOutputs --> RLUb_HIL_ip_src_HitermOutputs
+RLUb_HIL/RLUb_DTFX --> RLUb_HIL_ip_src_RLUb_DTFX
+RLUb_HIL/SignalMUX/AnalogOut/SignedScale --> RLUb_HIL_ip_src_SignedScale
+RLUb_HIL/SignalMUX/AnalogOut/UnsignedScale --> RLUb_HIL_ip_src_UnsignedScale
+RLUb_HIL/SignalMUX/AnalogOut/UnsignedScale1 --> RLUb_HIL_ip_src_UnsignedScale1
+RLUb_HIL/SignalMUX/AnalogOut --> RLUb_HIL_ip_src_AnalogOut
+RLUb_HIL/SignalMUX/Subsystem1 --> RLUb_HIL_ip_src_Subsystem1_block
+RLUb_HIL/SignalMUX --> RLUb_HIL_ip_src_SignalMUX
+RLUb_HIL --> RLUb_HIL_ip_src_RLUb_HIL

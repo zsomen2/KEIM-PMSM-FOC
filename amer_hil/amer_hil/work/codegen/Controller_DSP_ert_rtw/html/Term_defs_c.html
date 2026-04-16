@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript" src="./js/coder_app.js"></script>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<script type="text/javascript" src="./rtwreport_utils.js"></script>
+<script type="text/javascript" src="./rtwannotate.js"></script>
+<link rel="stylesheet" type="text/css" href="./css/coder_app.css"/>
+</head>
+<body onload="srcFileOnload();">
+<pre id="code">
+<table class="code" id="codeTbl">
+<tr name="1" id="1">
+<td><a id="l1" class='ln'>1</a></td><td><span class="pp">#include "stdint.h"</span></td></tr>
+<tr name="2" id="2">
+<td><a id="l2" class='ln'>2</a></td><td><span class="pp">#include "MUCI_Recorder.h"</span></td></tr>
+<tr name="3" id="3">
+<td><a id="l3" class='ln'>3</a></td><td><span class="pp">#include "Term_defs.h"</span></td></tr>
+<tr name="4" id="4">
+<td><a id="l4" class='ln'>4</a></td><td></td></tr>
+<tr name="5" id="5">
+<td><a id="l5" class='ln'>5</a></td><td><a id="5c1" class="tk">uint32_t</a> <a id="5c10" class="tk">f_samp</a> = 20000;    <span class="ct">/*!&lt; sampling frequency - should be in a spearate file */</span></td></tr>
+<tr name="6" id="6">
+<td><a id="l6" class='ln'>6</a></td><td><span class="kw">const</span> <a id="6c7" class="tk">uint16_t</a> <a id="6c16" class="tk">mon_ver</a> = 200;      <span class="ct">/*!&lt; monitor version */</span></td></tr>
+<tr name="7" id="7">
+<td><a id="l7" class='ln'>7</a></td><td><span class="kw">const</span> <a id="7c7" class="tk">uint16_t</a> <a id="7c16" class="tk">en_fl_bbx</a> = 1;  <span class="ct">/*!&lt; enable monitoring floating point variables in the recorder */</span></td></tr>
+<tr name="8" id="8">
+<td><a id="l8" class='ln'>8</a></td><td><span class="kw">const</span> <a id="8c7" class="tk">uint16_t</a> <a id="8c16" class="tk">nr_tabs</a>=<a id="8c24" class="tk">MON_MAXTABS</a>;<span class="ct">/*!&lt; maximum number of tabs */</span></td></tr>
+<tr name="9" id="9">
+<td><a id="l9" class='ln'>9</a></td><td><span class="kw">const</span> <a id="9c7" class="tk">uint32_t</a> <a id="9c16" class="tk">Consy</a> = 0; <span class="ct">/*!&lt; random number for consistency check */</span></td></tr>
+<tr name="10" id="10">
+<td><a id="l10" class='ln'>10</a></td><td><span class="kw">const</span> <a id="10c7" class="tk">uint16_t</a> <a id="10c16" class="tk">dev_mode</a> = 2;       <span class="ct">/*!&lt; if the value is non-zero password is not needed for the monitor */</span></td></tr>
+<tr name="11" id="11">
+<td><a id="l11" class='ln'>11</a></td><td><span class="kw">const</span> <a id="11c7" class="tk">uint32_t</a> <a id="11c16" class="tk">len_ehist</a> = 0; <span class="ct">/*!&lt; length of error history */</span></td></tr>
+<tr name="12" id="12">
+<td><a id="l12" class='ln'>12</a></td><td><span class="kw">const</span> <a id="12c7" class="tk">uint16_t</a> <a id="12c16" class="tk">noofBBXch</a> = <a id="12c28" class="tk">MUCI_RECORDER_CHANNEL_NUMBER</a>;</td></tr>
+<tr name="13" id="13">
+<td><a id="l13" class='ln'>13</a></td><td><a id="13c1" class="tk">uint32_t</a> <a id="13c10" class="tk">serial_nr</a> = 12345;</td></tr>
+<tr name="14" id="14">
+<td><a id="l14" class='ln'>14</a></td><td></td></tr>
+<tr name="15" id="15">
+<td><a id="l15" class='ln'>15</a></td><td><a id="15c1" class="tk">uint32_t</a> <a id="15c10" class="tk">BuildDate</a> = 20201006;</td></tr>
+<tr name="16" id="16">
+<td><a id="l16" class='ln'>16</a></td><td><a id="16c1" class="tk">uint32_t</a> <a id="16c10" class="tk">BuildTime</a> = 100000;</td></tr>
+<tr name="17" id="17">
+<td><a id="l17" class='ln'>17</a></td><td></td></tr>
+<tr name="18" id="18">
+<td><a id="l18" class='ln'>18</a></td><td><span class="ct">/* extern variables */</span></td></tr>
+<tr name="19" id="19">
+<td><a id="l19" class='ln'>19</a></td><td> <a id="19c2" class="tk">uint32_t</a> <a id="19c11" class="tk">c_date</a>;</td></tr>
+<tr name="20" id="20">
+<td><a id="l20" class='ln'>20</a></td><td> <a id="20c2" class="tk">uint32_t</a> <a id="20c11" class="tk">c_time</a>;</td></tr>
+<tr name="21" id="21">
+<td><a id="l21" class='ln'>21</a></td><td> <a id="21c2" class="tk">int32_t</a> <a id="21c10" class="tk">s_date</a>;</td></tr>
+<tr name="22" id="22">
+<td><a id="l22" class='ln'>22</a></td><td> <a id="22c2" class="tk">int32_t</a> <a id="22c10" class="tk">s_time</a>;</td></tr>
+<tr name="23" id="23">
+<td><a id="l23" class='ln'>23</a></td><td> <a id="23c2" class="tk">int16_t</a> <a id="23c10" class="tk">set_datetm</a>;</td></tr>
+<tr name="24" id="24">
+<td><a id="l24" class='ln'>24</a></td><td> <a id="24c2" class="tk">int16_t</a> <a id="24c10" class="tk">save_var</a>;</td></tr>
+<tr name="25" id="25">
+<td><a id="l25" class='ln'>25</a></td><td> <a id="25c2" class="tk">int16_t</a> <a id="25c10" class="tk">load_defv</a>;</td></tr>
+<tr name="26" id="26">
+<td><a id="l26" class='ln'>26</a></td><td></td></tr>
+<tr name="27" id="27">
+<td><a id="l27" class='ln'>27</a></td><td></td></tr>
+<tr name="28" id="28">
+<td><a id="l28" class='ln'>28</a></td><td><span class="ct">/* max, min values */</span></td></tr>
+<tr name="29" id="29">
+<td><a id="l29" class='ln'>29</a></td><td><span class="kw">const</span> <a id="29c7" class="tk">int32_t</a> <a id="29c15" class="tk">max_s_date</a> = 0x991231, <a id="29c38" class="tk">min_s_date</a> = 0x90101;</td></tr>
+<tr name="30" id="30">
+<td><a id="l30" class='ln'>30</a></td><td><span class="kw">const</span> <a id="30c7" class="tk">int32_t</a> <a id="30c15" class="tk">max_s_time</a> = 0x235959, <a id="30c38" class="tk">min_s_time</a> = 0x0;</td></tr>
+<tr name="31" id="31">
+<td><a id="l31" class='ln'>31</a></td><td><span class="kw">const</span> <a id="31c7" class="tk">int16_t</a> <a id="31c15" class="tk">max_set_datetm</a> = 1, <a id="31c35" class="tk">min_set_datetm</a> = 0;</td></tr>
+<tr name="32" id="32">
+<td><a id="l32" class='ln'>32</a></td><td><span class="kw">const</span> <a id="32c7" class="tk">int16_t</a> <a id="32c15" class="tk">max_save_var</a> = 1, <a id="32c33" class="tk">min_save_var</a> = 0;</td></tr>
+<tr name="33" id="33">
+<td><a id="l33" class='ln'>33</a></td><td><span class="kw">const</span> <a id="33c7" class="tk">int16_t</a> <a id="33c15" class="tk">max_load_defv</a> = 1, <a id="33c34" class="tk">min_load_defv</a> = 0;</td></tr>
+<tr name="34" id="34">
+<td><a id="l34" class='ln'>34</a></td><td></td></tr>
+<tr name="35" id="35">
+<td><a id="l35" class='ln'>35</a></td><td><a id="35c1" class="tk">uint16_t</a> <a id="35c10" class="tk">len_error_descriptor</a>,<a id="35c31" class="tk">len_mainsm_descriptor</a>;</td></tr>
+<tr name="36" id="36">
+<td><a id="l36" class='ln'>36</a></td><td></td></tr>
+<tr name="37" id="37">
+<td><a id="l37" class='ln'>37</a></td><td><span class="kw">const</span> <a id="37c7" class="tk">var_type</a> <a id="37c16" class="tk">vars_misc</a>[] = <span class="br">{</span></td></tr>
+<tr name="38" id="38">
+<td><a id="l38" class='ln'>38</a></td><td>  <span class="br">{</span> "en_fl_bbx", <a id="38c18" class="tk">UNIT_NONE</a>,  <a id="38c30" class="tk">TYP_U16</a>,                     <a id="38c59" class="tk">CA_U32</a>(<a id="38c66" class="tk">en_fl_bbx</a>),  0,              0                <span class="br">}</span> ,  <span class="ct">/*!&lt; enable floating point monitoring in blackbox for all DSP */</span></td></tr>
+<tr name="39" id="39">
+<td><a id="l39" class='ln'>39</a></td><td>  <span class="br">{</span> "bbox_str",  <a id="39c18" class="tk">UNIT_NONE</a>,  <a id="39c30" class="tk">TYP_U16</a>,                     <a id="39c59" class="tk">CA_U32</a>(<a id="39c66" class="tk">MUCI_RecorderParameter</a>),0,              0                <span class="br">}</span> ,  <span class="ct">/*!&lt; address of bbx struct for all DSP */</span></td></tr>
+<tr name="40" id="40">
+<td><a id="l40" class='ln'>40</a></td><td>  <span class="br">{</span> "f_samp",    <a id="40c18" class="tk">UNIT_NONE</a>,  <a id="40c30" class="tk">TYP_U32</a>,                     <a id="40c59" class="tk">CA_U32</a>(<a id="40c66" class="tk">f_samp</a>),     0,              0                <span class="br">}</span> ,  <span class="ct">/*!&lt; sampling frequency by bbx_trigger() for all DSP */</span></td></tr>
+<tr name="41" id="41">
+<td><a id="l41" class='ln'>41</a></td><td>  <span class="br">{</span> "Consy",     <a id="41c18" class="tk">UNIT_NONE</a>,  <a id="41c30" class="tk">TYP_U32</a>,                     <a id="41c59" class="tk">CA_U32</a>(<a id="41c66" class="tk">Consy</a>),      0,              0                <span class="br">}</span> ,  <span class="ct">/*!&lt; for the consistency check for all DSP */</span></td></tr>
+<tr name="42" id="42">
+<td><a id="l42" class='ln'>42</a></td><td>  <span class="br">{</span> "date",      <a id="42c18" class="tk">UNIT_NONE</a>,  <a id="42c30" class="tk">TYP_HEX</a><a id="42c37" class="tk">|</a><a id="42c38" class="tk">TYP_U32</a>,             <a id="42c59" class="tk">CA_U32</a>(<a id="42c66" class="tk">c_date</a>),     0,              0                <span class="br">}</span> ,  <span class="ct">/*!&lt; current date for all DSP */</span></td></tr>
+<tr name="43" id="43">
+<td><a id="l43" class='ln'>43</a></td><td>  <span class="br">{</span> "time",      <a id="43c18" class="tk">UNIT_NONE</a>,  <a id="43c30" class="tk">TYP_HEX</a><a id="43c37" class="tk">|</a><a id="43c38" class="tk">TYP_U32</a>,             <a id="43c59" class="tk">CA_U32</a>(<a id="43c66" class="tk">c_time</a>),     0,              0                <span class="br">}</span> ,  <span class="ct">/*!&lt; current time for all DSP */</span></td></tr>
+<tr name="44" id="44">
+<td><a id="l44" class='ln'>44</a></td><td>  <span class="br">{</span> "s_date",    <a id="44c18" class="tk">UNIT_NONE</a>,  <a id="44c30" class="tk">TYP_ENWR</a><a id="44c38" class="tk">|</a><a id="44c39" class="tk">TYP_32BIT</a>,          <a id="44c59" class="tk">CA_U32</a>(<a id="44c66" class="tk">s_date</a>),     <a id="44c79" class="tk">CA_U32</a>(<a id="44c86" class="tk">max_s_date</a>),<a id="44c98" class="tk">CA_U32</a>(<a id="44c105" class="tk">min_s_date</a>)<span class="br">}</span> ,  <span class="ct">/*!&lt; for date setup for all DSP */</span></td></tr>
+<tr name="45" id="45">
+<td><a id="l45" class='ln'>45</a></td><td>  <span class="br">{</span> "s_time",    <a id="45c18" class="tk">UNIT_NONE</a>,  <a id="45c30" class="tk">TYP_ENWR</a><a id="45c38" class="tk">|</a><a id="45c39" class="tk">TYP_32BIT</a>,          <a id="45c59" class="tk">CA_U32</a>(<a id="45c66" class="tk">s_time</a>),     <a id="45c79" class="tk">CA_U32</a>(<a id="45c86" class="tk">max_s_time</a>),<a id="45c98" class="tk">CA_U32</a>(<a id="45c105" class="tk">min_s_time</a>)<span class="br">}</span> ,  <span class="ct">/*!&lt; for time setup for all DSP */</span></td></tr>
+<tr name="46" id="46">
+<td><a id="l46" class='ln'>46</a></td><td>  <span class="br">{</span> "set_dt",    <a id="46c18" class="tk">UNIT_NONE</a>,  <a id="46c30" class="tk">TYP_ENWR</a><a id="46c38" class="tk">|</a><a id="46c39" class="tk">TYP_16BIT</a>,          <a id="46c59" class="tk">CA_U32</a>(<a id="46c66" class="tk">set_datetm</a>), <a id="46c79" class="tk">CA_U32</a>(<a id="46c86" class="tk">max_set_datetm</a>),<a id="46c102" class="tk">CA_U32</a>(<a id="46c109" class="tk">min_set_datetm</a>)<span class="br">}</span> ,  <span class="ct">/*!&lt; for date,time setup for all DSP */</span></td></tr>
+<tr name="47" id="47">
+<td><a id="l47" class='ln'>47</a></td><td>  <span class="br">{</span> "save_var",  <a id="47c18" class="tk">UNIT_NONE</a>,  <a id="47c30" class="tk">TYP_ENWR</a><a id="47c38" class="tk">|</a><a id="47c39" class="tk">TYP_16BIT</a>,          <a id="47c59" class="tk">CA_U32</a>(<a id="47c66" class="tk">save_var</a>),   <a id="47c79" class="tk">CA_U32</a>(<a id="47c86" class="tk">max_save_var</a>),<a id="47c100" class="tk">CA_U32</a>(<a id="47c107" class="tk">min_save_var</a>)<span class="br">}</span> ,  <span class="ct">/*!&lt; save variables for all DSP */</span></td></tr>
+<tr name="48" id="48">
+<td><a id="l48" class='ln'>48</a></td><td>  <span class="br">{</span> "load_defv", <a id="48c18" class="tk">UNIT_NONE</a>,  <a id="48c30" class="tk">TYP_ENWR</a><a id="48c38" class="tk">|</a><a id="48c39" class="tk">TYP_16BIT</a>,          <a id="48c59" class="tk">CA_U32</a>(<a id="48c66" class="tk">load_defv</a>),  <a id="48c79" class="tk">CA_U32</a>(<a id="48c86" class="tk">max_load_defv</a>),<a id="48c101" class="tk">CA_U32</a>(<a id="48c108" class="tk">min_load_defv</a>)<span class="br">}</span> ,  <span class="ct">/*!&lt; load default variable values for all DSP */</span></td></tr>
+<tr name="49" id="49">
+<td><a id="l49" class='ln'>49</a></td><td>  <span class="br">{</span> "serial",    <a id="49c18" class="tk">UNIT_NONE</a>,  <a id="49c30" class="tk">TYP_U32</a>,                     <a id="49c59" class="tk">CA_U32</a>(<a id="49c66" class="tk">serial_nr</a>),  0,              0                <span class="br">}</span> ,  <span class="ct">/*!&lt; serial number for the pwd generation */</span></td></tr>
+<tr name="50" id="50">
+<td><a id="l50" class='ln'>50</a></td><td>  <span class="br">{</span> "dev_mode",  <a id="50c18" class="tk">UNIT_NONE</a>,  <a id="50c30" class="tk">TYP_U16</a>,                     <a id="50c59" class="tk">CA_U32</a>(<a id="50c66" class="tk">dev_mode</a>),   0,              0                <span class="br">}</span> ,  <span class="ct">/*!&lt; development mode, if the value is non-zero the Monitor goes immediatelly into dev mode */</span></td></tr>
+<tr name="51" id="51">
+<td><a id="l51" class='ln'>51</a></td><td>  <span class="br">{</span> "mon_ver",   <a id="51c18" class="tk">UNIT_NONE</a>,  <a id="51c30" class="tk">TYP_U16</a>,                     <a id="51c59" class="tk">CA_U32</a>(<a id="51c66" class="tk">mon_ver</a>),    0,              0                <span class="br">}</span> ,  <span class="ct">/*'&lt; monitor version */</span></td></tr>
+<tr name="52" id="52">
+<td><a id="l52" class='ln'>52</a></td><td>  <span class="br">{</span> "l_ehist",   <a id="52c18" class="tk">UNIT_NONE</a>,  <a id="52c30" class="tk">TYP_U32</a>,                     <a id="52c59" class="tk">CA_U32</a>(<a id="52c66" class="tk">len_ehist</a>),  0,              0                <span class="br">}</span> ,  <span class="ct">/*!&lt; length of error history in entries */</span></td></tr>
+<tr name="53" id="53">
+<td><a id="l53" class='ln'>53</a></td><td>  <span class="br">{</span> "l_errdesc", <a id="53c18" class="tk">UNIT_NONE</a>,  <a id="53c30" class="tk">TYP_U16</a>,                     <a id="53c59" class="tk">CA_U32</a>(<a id="53c66" class="tk">len_error_descriptor</a>),0,              0                <span class="br">}</span> ,  <span class="ct">/*'&lt; length of the error texts in characters */</span></td></tr>
+<tr name="54" id="54">
+<td><a id="l54" class='ln'>54</a></td><td>  <span class="br">{</span> "l_msmdesc", <a id="54c18" class="tk">UNIT_NONE</a>,  <a id="54c30" class="tk">TYP_U16</a>,                     <a id="54c59" class="tk">CA_U32</a>(<a id="54c66" class="tk">len_mainsm_descriptor</a>),0,              0                <span class="br">}</span> ,  <span class="ct">/*'&lt; length of the mainsm texts in characters */</span></td></tr>
+<tr name="55" id="55">
+<td><a id="l55" class='ln'>55</a></td><td>  <span class="br">{</span> "errdesc",   <a id="55c18" class="tk">UNIT_NONE</a>,  <a id="55c30" class="tk">TYP_U16</a>,                     <a id="55c59" class="tk">CA_U32</a>(<a id="55c66" class="tk">error_descriptor</a>),0,              0                <span class="br">}</span> ,  <span class="ct">/*'&lt; used to get the pointer to the error history text */</span></td></tr>
+<tr name="56" id="56">
+<td><a id="l56" class='ln'>56</a></td><td>  <span class="br">{</span> "msmdesc",   <a id="56c18" class="tk">UNIT_NONE</a>,  <a id="56c30" class="tk">TYP_U16</a>,                     <a id="56c59" class="tk">CA_U32</a>(<a id="56c66" class="tk">mainsm_descriptor</a>),0,              0                <span class="br">}</span> ,  <span class="ct">/*'&lt; used to get the pointer to the mainsm  text */</span></td></tr>
+<tr name="57" id="57">
+<td><a id="l57" class='ln'>57</a></td><td>  <span class="br">{</span> "noofBBXch", <a id="57c18" class="tk">UNIT_NONE</a>,  <a id="57c30" class="tk">TYP_U16</a>,                     <a id="57c59" class="tk">CA_U32</a>(<a id="57c66" class="tk">noofBBXch</a>),  0,              0                <span class="br">}</span> ,  <span class="ct">/*&lt; number of bbx channels it can be only 4 or 8 */</span></td></tr>
+<tr name="58" id="58">
+<td><a id="l58" class='ln'>58</a></td><td>  <span class="br">{</span> "bbxmemlen", <a id="58c18" class="tk">UNIT_NONE</a>,  <a id="58c30" class="tk">TYP_U32</a>,                     <a id="58c59" class="tk">CA_U32</a>(<a id="58c66" class="tk">MUCI_RecorderLength</a>),0,              0                <span class="br">}</span> ,  <span class="ct">/*'&lt; used to get the maximum record length in bbx */</span></td></tr>
+<tr name="59" id="59">
+<td><a id="l59" class='ln'>59</a></td><td><span class="br">}</span>;</td></tr>
+<tr name="60" id="60">
+<td><a id="l60" class='ln'>60</a></td><td></td></tr>
+<tr name="61" id="61">
+<td><a id="l61" class='ln'>61</a></td><td></td></tr>
+<tr name="62" id="62">
+<td><a id="l62" class='ln'>62</a></td><td><span class="ct">/*! Titles of the disserent tabs: the 0th one is the Tab name, since it is not a real tab, but only used for the HiTerm.</span></td></tr>
+<tr name="63" id="63">
+<td><a id="l63" class='ln'>63</a></td><td><span class="ct">*/</span></td></tr>
+<tr name="64" id="64">
+<td><a id="l64" class='ln'>64</a></td><td><span class="kw">const</span> <a id="64c7" class="tk">uint8_t</a> <a id="64c15" class="tk">tabtitle</a>[<a id="64c24" class="tk">MON_MAXTABS</a>][<a id="64c37" class="tk">MAXCH_TABNAME</a><a id="64c50" class="tk">+</a>1] = <span class="br">{</span> <span class="br">{</span>"DSP"<span class="br">}</span><span class="br">}</span>;</td></tr>
+<tr name="65" id="65">
+<td><a id="l65" class='ln'>65</a></td><td><span class="ct">/*! Pointers for the tab descriptors. Used for all DSPs.*/</span></td></tr>
+<tr name="66" id="66">
+<td><a id="l66" class='ln'>66</a></td><td><span class="kw">const</span> <a id="66c7" class="tk">var_type</a><a id="66c15" class="tk">*</a> <a id="66c17" class="tk">tabptr</a>[<a id="66c24" class="tk">MON_MAXTABS</a>] = <span class="br">{</span><a id="66c40" class="tk">vars_misc</a><span class="br">}</span>;</td></tr>
+<tr name="67" id="67">
+<td><a id="l67" class='ln'>67</a></td><td><span class="ct">/*! Size of the tab descriptors, calculated in run time.*/</span></td></tr>
+<tr name="68" id="68">
+<td><a id="l68" class='ln'>68</a></td><td><a id="68c1" class="tk">uint16_t</a> <a id="68c10" class="tk">tabsize</a>[<a id="68c18" class="tk">MON_MAXTABS</a>];</td></tr>
+<tr name="69" id="69">
+<td><a id="l69" class='ln'>69</a></td><td></td></tr>
+<tr name="70" id="70">
+<td><a id="l70" class='ln'>70</a></td><td><span class="kw">const</span> <a id="70c7" class="tk">uint8_t</a> <a id="70c15" class="tk">units</a>[][<a id="70c23" class="tk">MAXCH_UNIT</a><a id="70c33" class="tk">+</a>1] = <span class="br">{</span> <span class="br">{</span>""<span class="br">}</span>,</td></tr>
+<tr name="71" id="71">
+<td><a id="l71" class='ln'>71</a></td><td>                                        <span class="br">{</span>"A"<span class="br">}</span>,</td></tr>
+<tr name="72" id="72">
+<td><a id="l72" class='ln'>72</a></td><td>                                        <span class="br">{</span>"V"<span class="br">}</span>,</td></tr>
+<tr name="73" id="73">
+<td><a id="l73" class='ln'>73</a></td><td>                                        <span class="br">{</span>"kVA"<span class="br">}</span>,</td></tr>
+<tr name="74" id="74">
+<td><a id="l74" class='ln'>74</a></td><td>                                        <span class="br">{</span>"kW"<span class="br">}</span>,</td></tr>
+<tr name="75" id="75">
+<td><a id="l75" class='ln'>75</a></td><td>                                        <span class="br">{</span>"s"<span class="br">}</span>,</td></tr>
+<tr name="76" id="76">
+<td><a id="l76" class='ln'>76</a></td><td>                                        <span class="br">{</span>"hour"<span class="br">}</span>,</td></tr>
+<tr name="77" id="77">
+<td><a id="l77" class='ln'>77</a></td><td>                                        <span class="br">{</span>"Nm"<span class="br">}</span>,</td></tr>
+<tr name="78" id="78">
+<td><a id="l78" class='ln'>78</a></td><td>                                        <span class="br">{</span>"kWh"<span class="br">}</span>,</td></tr>
+<tr name="79" id="79">
+<td><a id="l79" class='ln'>79</a></td><td>                                        <span class="br">{</span>"Hz"<span class="br">}</span>,</td></tr>
+<tr name="80" id="80">
+<td><a id="l80" class='ln'>80</a></td><td>                                        <span class="br">{</span>"Vs"<span class="br">}</span>,</td></tr>
+<tr name="81" id="81">
+<td><a id="l81" class='ln'>81</a></td><td>                                        <span class="br">{</span>"NA"<span class="br">}</span>,</td></tr>
+<tr name="82" id="82">
+<td><a id="l82" class='ln'>82</a></td><td>                                        <span class="br">{</span>"W"<span class="br">}</span>,</td></tr>
+<tr name="83" id="83">
+<td><a id="l83" class='ln'>83</a></td><td>                                        <span class="br">{</span>"VAr"<span class="br">}</span>,</td></tr>
+<tr name="84" id="84">
+<td><a id="l84" class='ln'>84</a></td><td>                                        <span class="br">{</span>"VA"<span class="br">}</span>,</td></tr>
+<tr name="85" id="85">
+<td><a id="l85" class='ln'>85</a></td><td>                                        <span class="br">{</span>"rad/s"<span class="br">}</span>,</td></tr>
+<tr name="86" id="86">
+<td><a id="l86" class='ln'>86</a></td><td>                                        <span class="br">{</span>"DI"<span class="br">}</span>,</td></tr>
+<tr name="87" id="87">
+<td><a id="l87" class='ln'>87</a></td><td>                                        <span class="br">{</span>"rad"<span class="br">}</span>,</td></tr>
+<tr name="88" id="88">
+<td><a id="l88" class='ln'>88</a></td><td>                                        <span class="br">{</span>"Ver"<span class="br">}</span>,</td></tr>
+<tr name="89" id="89">
+<td><a id="l89" class='ln'>89</a></td><td>                                        <span class="br">{</span>"°C"<span class="br">}</span>,</td></tr>
+<tr name="90" id="90">
+<td><a id="l90" class='ln'>90</a></td><td>                                        <span class="br">{</span>"%"<span class="br">}</span>,</td></tr>
+<tr name="91" id="91">
+<td><a id="l91" class='ln'>91</a></td><td>                                        <span class="br">{</span>"BitF"<span class="br">}</span>,</td></tr>
+<tr name="92" id="92">
+<td><a id="l92" class='ln'>92</a></td><td>                                        <span class="br">{</span>"100ms"<span class="br">}</span>,</td></tr>
+<tr name="93" id="93">
+<td><a id="l93" class='ln'>93</a></td><td>                                        <span class="br">{</span>"ms"<span class="br">}</span>,</td></tr>
+<tr name="94" id="94">
+<td><a id="l94" class='ln'>94</a></td><td>                                        <span class="br">{</span>"mA"<span class="br">}</span>,</td></tr>
+<tr name="95" id="95">
+<td><a id="l95" class='ln'>95</a></td><td>                                        <span class="br">}</span>;</td></tr>
+<tr name="96" id="96">
+<td><a id="l96" class='ln'>96</a></td><td><span class="kw">const</span> <a id="96c7" class="tk">desc_type</a> <a id="96c17" class="tk">error_descriptor</a>[<a id="96c34" class="tk">LEN_ERR_DESC</a>] = <span class="br">{</span></td></tr>
+<tr name="97" id="97">
+<td><a id="l97" class='ln'>97</a></td><td>  <span class="br">{</span>0   , "No error" <span class="br">}</span>,</td></tr>
+<tr name="98" id="98">
+<td><a id="l98" class='ln'>98</a></td><td>  <span class="br">{</span>1   , "Overcurrent R" <span class="br">}</span>,</td></tr>
+<tr name="99" id="99">
+<td><a id="l99" class='ln'>99</a></td><td>  <span class="br">{</span>2   , "Overcurrent S" <span class="br">}</span>,</td></tr>
+<tr name="100" id="100">
+<td><a id="l100" class='ln'>100</a></td><td>  <span class="br">{</span>3   , "Overcurrent T" <span class="br">}</span>,</td></tr>
+<tr name="101" id="101">
+<td><a id="l101" class='ln'>101</a></td><td>  <span class="br">{</span>4   , "Overv DC-link" <span class="br">}</span>,</td></tr>
+<tr name="102" id="102">
+<td><a id="l102" class='ln'>102</a></td><td>  <span class="br">{</span>5   , "Overvoltage R" <span class="br">}</span>,</td></tr>
+<tr name="103" id="103">
+<td><a id="l103" class='ln'>103</a></td><td>  <span class="br">{</span>6   , "Overvoltage S" <span class="br">}</span>,</td></tr>
+<tr name="104" id="104">
+<td><a id="l104" class='ln'>104</a></td><td>  <span class="br">{</span>7   , "Overvoltage T" <span class="br">}</span>,</td></tr>
+<tr name="105" id="105">
+<td><a id="l105" class='ln'>105</a></td><td>  <span class="br">{</span>8   , "IGBT sat prot R" <span class="br">}</span>,</td></tr>
+<tr name="106" id="106">
+<td><a id="l106" class='ln'>106</a></td><td>  <span class="br">{</span>9   , "IGBT sat prot S" <span class="br">}</span>,</td></tr>
+<tr name="107" id="107">
+<td><a id="l107" class='ln'>107</a></td><td>  <span class="br">{</span>10  , "IGBT sat prot T" <span class="br">}</span>,</td></tr>
+<tr name="108" id="108">
+<td><a id="l108" class='ln'>108</a></td><td>  <span class="br">{</span>11  , "Overload R" <span class="br">}</span>,</td></tr>
+<tr name="109" id="109">
+<td><a id="l109" class='ln'>109</a></td><td>  <span class="br">{</span>12  , "Overload S" <span class="br">}</span>,</td></tr>
+<tr name="110" id="110">
+<td><a id="l110" class='ln'>110</a></td><td>  <span class="br">{</span>13  , "Overload T" <span class="br">}</span>,</td></tr>
+<tr name="111" id="111">
+<td><a id="l111" class='ln'>111</a></td><td>  <span class="br">{</span>44  , "Unknown error" <span class="br">}</span>,</td></tr>
+<tr name="112" id="112">
+<td><a id="l112" class='ln'>112</a></td><td><span class="br">}</span>;</td></tr>
+<tr name="113" id="113">
+<td><a id="l113" class='ln'>113</a></td><td></td></tr>
+<tr name="114" id="114">
+<td><a id="l114" class='ln'>114</a></td><td><span class="kw">const</span> <a id="114c7" class="tk">desc_type</a> <a id="114c17" class="tk">mainsm_descriptor</a>[<a id="114c35" class="tk">LEN_MAINSM_DESC</a>] = <span class="br">{</span></td></tr>
+<tr name="115" id="115">
+<td><a id="l115" class='ln'>115</a></td><td>  <span class="br">{</span>0   , "Stopped" <span class="br">}</span>,</td></tr>
+<tr name="116" id="116">
+<td><a id="l116" class='ln'>116</a></td><td>  <span class="br">{</span>1   , "Starting" <span class="br">}</span>,</td></tr>
+<tr name="117" id="117">
+<td><a id="l117" class='ln'>117</a></td><td>  <span class="br">{</span>2   , "Operational" <span class="br">}</span>,</td></tr>
+<tr name="118" id="118">
+<td><a id="l118" class='ln'>118</a></td><td>  <span class="br">{</span>3   , "Waiting" <span class="br">}</span>,</td></tr>
+<tr name="119" id="119">
+<td><a id="l119" class='ln'>119</a></td><td>  <span class="br">{</span>99  , "Crazy state" <span class="br">}</span>,</td></tr>
+<tr name="120" id="120">
+<td><a id="l120" class='ln'>120</a></td><td><span class="br">}</span>;</td></tr>
+<tr name="121" id="121">
+<td><a id="l121" class='ln'>121</a></td><td></td></tr>
+<tr name="122" id="122">
+<td><a id="l122" class='ln'>122</a></td><td><span class="kw">void</span> <a id="122c6" class="tk">InitTermVars</a>()</td></tr>
+<tr name="123" id="123">
+<td><a id="l123" class='ln'>123</a></td><td><span class="br">{</span></td></tr>
+<tr name="124" id="124">
+<td><a id="l124" class='ln'>124</a></td><td><a id="124c1" class="tk">tabsize</a>[0] = <span class="kw">sizeof</span>(<a id="124c21" class="tk">vars_misc</a>);</td></tr>
+<tr name="125" id="125">
+<td><a id="l125" class='ln'>125</a></td><td></td></tr>
+<tr name="126" id="126">
+<td><a id="l126" class='ln'>126</a></td><td><a id="126c1" class="tk">len_error_descriptor</a> = <span class="kw">sizeof</span>(<a id="126c31" class="tk">error_descriptor</a>);</td></tr>
+<tr name="127" id="127">
+<td><a id="l127" class='ln'>127</a></td><td><a id="127c1" class="tk">len_mainsm_descriptor</a> = <span class="kw">sizeof</span>(<a id="127c32" class="tk">mainsm_descriptor</a>);</td></tr>
+<tr name="128" id="128">
+<td><a id="l128" class='ln'>128</a></td><td></td></tr>
+<tr name="129" id="129">
+<td><a id="l129" class='ln'>129</a></td><td><span class="br">}</span></td></tr>
+<tr name="130" id="130">
+<td><a id="l130" class='ln'>130</a></td><td></td></tr>
+</table>
+</pre>
+</body>
+</html>

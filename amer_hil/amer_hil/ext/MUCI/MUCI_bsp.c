@@ -1,0 +1,31 @@
+#include "F2806x_Device.h"
+#include "MUCI_bsp.h"
+
+void MUCI_bsp_Reboot()
+{
+    EALLOW;
+    SysCtrlRegs.WDCR=0;
+    EDIS;
+}
+
+
+uint16_t MUCI_bsp_CLEAR_FLASH_SECTOR(uint8_t FlashSectorNumber)
+{
+	uint16_t Status = 0u;
+
+	return Status;
+}
+
+uint16_t MUCI_bsp_PROGRAM_FLASH(uint32_t StartAddress, uint32_t Quantity, uint8_t* Data)
+{
+	uint16_t Status = 0u;
+
+	return Status;
+}
+
+uint16_t MUCI_bsp_READ_FLASH(uint32_t StartAddress, uint32_t Quantity, uint8_t* Data)
+{
+	uint16_t Status = 0u;
+
+	return Status;
+}

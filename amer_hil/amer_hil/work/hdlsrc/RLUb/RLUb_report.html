@@ -1,0 +1,446 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml" itemscope itemtype="https://www.mathworks.com/help/schema/MathWorksDocPage">
+<head>
+<title>HDL Check Report for 'RLUb'</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<script type="text/javascript" src="file://C:/Program%20Files/MATLAB/R2018b/toolbox/hdlcoder/hdlcommon/js_css/jquery-1.7.1.js"></script>
+<script type="text/javascript" src="file://C:/Program%20Files/MATLAB/R2018b/toolbox/hdlcoder/hdlcommon/js_css/docscripts.js"></script>
+        
+        <link href="file://C:/Program%20Files/MATLAB/R2018b/toolbox/hdlcoder/hdlcommon/js_css/ice_960.css" rel="stylesheet" type="text/css">
+        <link href="file://C:/Program%20Files/MATLAB/R2018b/toolbox/hdlcoder/hdlcommon/js_css/HDLsite5.css" rel="stylesheet" type="text/css">
+        <link href="file://C:/Program%20Files/MATLAB/R2018b/toolbox/hdlcoder/hdlcommon/js_css/ice_doc_center.css" rel="stylesheet" type="text/css">
+        <link href="file://C:/Program%20Files/MATLAB/R2018b/toolbox/hdlcoder/hdlcommon/js_css/ice_doc_center_installed.css" rel="stylesheet" type="text/css">
+        <link href="file://C:/Program%20Files/MATLAB/R2018b/toolbox/hdlcoder/hdlcommon/js_css/ice_doc_center_print.css" rel="stylesheet" type="text/css" media="print">
+        <script type="text/javascript">
+            if (navigator.appName != "ICEbrowser") {
+            var cssStyleSheets = $("link").filter(function(){
+            var href = $(this).attr('href');
+            return href.indexOf("ice_doc_center_print.css") == -1});
+            var hrefElements = $.map(cssStyleSheets, function(elem) {
+            var href = $(elem).attr('href');
+            var hrefArray = href.split("/");
+            hrefArray[hrefArray.length - 1] = hrefArray[hrefArray.length - 1].replace("ice_", "");
+            return {
+            href: hrefArray.join("/"),
+            media: $(elem).attr('media')
+            };
+            });
+            cssStyleSheets.remove();
+            for (var i = 0; i < hrefElements.length; i++) {
+            if ($.browser.msie && $.browser.version <= 8) {
+            document.createStyleSheet(hrefElements[i].href);
+            } else {
+            var link = $('<link rel="stylesheet" href=' + hrefElements[i].href + ' type="text/css" />');
+            if (hrefElements[i].media) {
+            link.attr('media', hrefElements[i].media);
+            }
+            $('head').append(link);
+            }
+            }
+            }
+    </script>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+<div class="container_192">
+<div class="grid_192">
+ <div class="page_container"><div class="content_frame">
+<h1>HDL Code Generation Check Report for 'RLUb'
+<a href="matlab:open_system('RLUb');">open model 'RLUb'</a><BR>
+Generated on 2026-04-16 19:42:45</h1>
+<H2>HDL check for 'RLUb' complete with 55 errors, 3 warnings, and 0 messages.</H2><BR>
+<H3>The following table describes blocks for which errors, warnings or messages were reported.</H3><BR>
+<TABLE>
+<TR><TD> <B>Simulink Blocks and resources</B> </TD><TD> <B>Level</B> </TD><TD> <B>Description</B> </TD></TR><TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:engine:unsupportedtriggertype" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 67 111 110 116 114 111 108 108 101 114 47 67 117 114 114 101 110 116 67 111 110 116 114 111 108]))">RLUb/Controller/CurrentControl</a>
+</TD>
+<TD>Error</TD>
+<TD>Trigger type 'function-call' is not supported for HDL code generation.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:engine:unsupportedtriggertype" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 67 111 110 116 114 111 108 108 101 114 47 83 116 97 116 101 77 97 99 104 105 110 101]))">RLUb/Controller/StateMachine</a>
+</TD>
+<TD>Error</TD>
+<TD>Trigger type 'function-call' is not supported for HDL code generation.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="MATLAB:slResolve:NotResolved" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 67 111 110 116 114 111 108 108 101 114 47 101 118 101 110 116]))">RLUb/Controller/event</a>
+</TD>
+<TD>Error</TD>
+<TD>Can not resolve: fcn_call.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:engine:FcnCallInvalidType" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 67 111 110 116 114 111 108 108 101 114 47 66 117 115 10 83 101 108 101 99 116 111 114 49]))">RLUb/Controller/Bus
+Selector1</a>
+</TD>
+<TD>Error</TD>
+<TD>Function call port types are not supported.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:engine:FcnCallInvalidType" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 67 111 110 116 114 111 108 108 101 114 47 66 117 115 10 83 101 108 101 99 116 111 114 49]))">RLUb/Controller/Bus
+Selector1</a>
+</TD>
+<TD>Error</TD>
+<TD>Function call port types are not supported.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:engine:missingImplementation" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 99 104 101 100 117 108 101 114 47 70 117 110 99 116 105 111 110 45 67 97 108 108 10 71 101 110 101 114 97 116 111 114]))">RLUb/Scheduler/Function-Call
+Generator</a>
+</TD>
+<TD>Error</TD>
+<TD>Block 'RLUb/Scheduler/Function-Call Generator' is not supported for HDL code generation. To continue with code generation, comment out this block.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:engine:missingImplementation" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 99 104 101 100 117 108 101 114 47 70 117 110 99 116 105 111 110 45 67 97 108 108 10 71 101 110 101 114 97 116 111 114 49]))">RLUb/Scheduler/Function-Call
+Generator1</a>
+</TD>
+<TD>Error</TD>
+<TD>Block 'RLUb/Scheduler/Function-Call Generator1' is not supported for HDL code generation. To continue with code generation, comment out this block.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:engine:missingImplementation" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 99 104 101 100 117 108 101 114 47 70 117 110 99 116 105 111 110 45 67 97 108 108 10 71 101 110 101 114 97 116 111 114 50]))">RLUb/Scheduler/Function-Call
+Generator2</a>
+</TD>
+<TD>Error</TD>
+<TD>Block 'RLUb/Scheduler/Function-Call Generator2' is not supported for HDL code generation. To continue with code generation, comment out this block.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:engine:FcnCallInvalidType" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 99 104 101 100 117 108 101 114 47 65 115 121 110 99 104 114 111 110 111 117 115 83 99 104 101 100 117 108 101 114]))">RLUb/Scheduler/AsynchronousScheduler</a>
+</TD>
+<TD>Error</TD>
+<TD>Function call port types are not supported.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="MATLAB:slResolve:NotResolved" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 99 104 101 100 117 108 101 114 47 66 117 115 10 67 114 101 97 116 111 114]))">RLUb/Scheduler/Bus
+Creator</a>
+</TD>
+<TD>Error</TD>
+<TD>Can not resolve: fcn_call.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="MATLAB:slResolve:NotResolved" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 99 104 101 100 117 108 101 114 47 66 117 115 10 67 114 101 97 116 111 114 52]))">RLUb/Scheduler/Bus
+Creator4</a>
+</TD>
+<TD>Error</TD>
+<TD>Can not resolve: fcn_call.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="MATLAB:slResolve:NotResolved" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 99 104 101 100 117 108 101 114 47 66 117 115 10 67 114 101 97 116 111 114 53]))">RLUb/Scheduler/Bus
+Creator5</a>
+</TD>
+<TD>Error</TD>
+<TD>Can not resolve: fcn_call.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:engine:FcnCallInvalidType" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 99 104 101 100 117 108 101 114 47 70 117 110 99 116 105 111 110 45 67 97 108 108 10 71 101 110 101 114 97 116 111 114]))">RLUb/Scheduler/Function-Call
+Generator</a>
+</TD>
+<TD>Error</TD>
+<TD>Function call port types are not supported.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:engine:FcnCallInvalidType" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 99 104 101 100 117 108 101 114 47 70 117 110 99 116 105 111 110 45 67 97 108 108 10 71 101 110 101 114 97 116 111 114 49]))">RLUb/Scheduler/Function-Call
+Generator1</a>
+</TD>
+<TD>Error</TD>
+<TD>Function call port types are not supported.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:engine:FcnCallInvalidType" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 99 104 101 100 117 108 101 114 47 70 117 110 99 116 105 111 110 45 67 97 108 108 10 71 101 110 101 114 97 116 111 114 50]))">RLUb/Scheduler/Function-Call
+Generator2</a>
+</TD>
+<TD>Error</TD>
+<TD>Function call port types are not supported.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:engine:missingImplementation" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 116 101 112 49]))">RLUb/Step1</a>
+</TD>
+<TD>Error</TD>
+<TD>Block 'RLUb/Step1' is not supported for HDL code generation. To continue with code generation, comment out this block.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:engine:missingImplementation" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 116 101 112 50]))">RLUb/Step2</a>
+</TD>
+<TD>Error</TD>
+<TD>Block 'RLUb/Step2' is not supported for HDL code generation. To continue with code generation, comment out this block.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:engine:missingImplementation" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 117 98 115 121 115 116 101 109 47 80 87 77 47 73 110 116 101 103 114 97 116 111 114]))">RLUb/Subsystem/PWM/Integrator</a>
+</TD>
+<TD>Error</TD>
+<TD>Block 'RLUb/Subsystem/PWM/Integrator' is not supported for HDL code generation. To continue with code generation, comment out this block.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="MATLAB:slResolve:NotResolved" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 99 104 101 100 117 108 101 114]))">RLUb/Scheduler</a>
+</TD>
+<TD>Error</TD>
+<TD>Can not resolve: fcn_call.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="HDLShared:hdlshared:MultirateMultiTasking" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');open_system(char([82 76 85 98]))">RLUb</a>
+</TD>
+<TD>Error</TD>
+<TD>To guarantee data integrity in generated HDL code, set the "Multitask rate transition" and "Single task rate transition" options to "Error" on the Diagnostics > Sample Time pane of the Configuration Parameters dialog box. Additionally on the Solver pane, set the Solver type to "Fixed-step" and, in the Solver details > Tasking and sample time options group select "Treat each discrete rate as a separate task".</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:validate:RoundModeMustBeNearest" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 68 97 116 97 32 84 121 112 101 32 67 111 110 118 101 114 115 105 111 110 49]))">RLUb/Data Type Conversion1</a>
+</TD>
+<TD>Error</TD>
+<TD>Round mode must be 'Nearest' for floating-point support.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:validate:unsupportedrtmode" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 67 111 110 116 114 111 108 108 101 114 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110]))">RLUb/Controller/Rate Transition</a>
+</TD>
+<TD>Error</TD>
+<TD>Rate Transition block is supported only if both Data Integrity and Deterministic Data Transfer are ensured.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:validate:invalidrates" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 67 111 110 116 114 111 108 108 101 114 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110]))">RLUb/Controller/Rate Transition</a>
+</TD>
+<TD>Error</TD>
+<TD>The input or output rates of rate transition block can not be zero or Inf.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:validate:unsupportedrtmode" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 67 111 110 116 114 111 108 108 101 114 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 49]))">RLUb/Controller/Rate Transition1</a>
+</TD>
+<TD>Error</TD>
+<TD>Rate Transition block is supported only if both Data Integrity and Deterministic Data Transfer are ensured.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:validate:invalidrates" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 67 111 110 116 114 111 108 108 101 114 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 49]))">RLUb/Controller/Rate Transition1</a>
+</TD>
+<TD>Error</TD>
+<TD>The input or output rates of rate transition block can not be zero or Inf.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:validate:unsupportedrtmode" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 67 111 110 116 114 111 108 108 101 114 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 50]))">RLUb/Controller/Rate Transition2</a>
+</TD>
+<TD>Error</TD>
+<TD>Rate Transition block is supported only if both Data Integrity and Deterministic Data Transfer are ensured.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:validate:nonZeroInitVal" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 67 111 110 116 114 111 108 108 101 114 47 67 117 114 114 101 110 116 67 111 110 116 114 111 108 47 97 100 99 95 105 116]))">RLUb/Controller/CurrentControl/adc_it</a>
+</TD>
+<TD>Error</TD>
+<TD>Subsystem output port 'D' must have an initial value of 0 for HDL code generation when in a subsystem with a Trigger or Enable port.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:validate:nonZeroInitVal" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 67 111 110 116 114 111 108 108 101 114 47 83 116 97 116 101 77 97 99 104 105 110 101 47 116 105 109 101 114 95 49 109 115]))">RLUb/Controller/StateMachine/timer_1ms</a>
+</TD>
+<TD>Error</TD>
+<TD>Subsystem output port 'Iref' must have an initial value of 0 for HDL code generation when in a subsystem with a Trigger or Enable port.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:validate:nonZeroInitVal" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 67 111 110 116 114 111 108 108 101 114 47 83 116 97 116 101 77 97 99 104 105 110 101 47 116 105 109 101 114 95 49 109 115]))">RLUb/Controller/StateMachine/timer_1ms</a>
+</TD>
+<TD>Error</TD>
+<TD>Subsystem output port 'ctrl_en' must have an initial value of 0 for HDL code generation when in a subsystem with a Trigger or Enable port.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:validate:nonZeroInitVal" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 67 111 110 116 114 111 108 108 101 114 47 83 116 97 116 101 77 97 99 104 105 110 101 47 116 105 109 101 114 95 49 109 115]))">RLUb/Controller/StateMachine/timer_1ms</a>
+</TD>
+<TD>Error</TD>
+<TD>Subsystem output port 'gate_en' must have an initial value of 0 for HDL code generation when in a subsystem with a Trigger or Enable port.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:validate:unsupportedmultiratesignaltobuselementports" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 67 111 110 116 114 111 108 108 101 114 47 121 95 66 117 115 67 114 101 97 116 111 114 47 121 95 66 117 115 67 114 101 97 116 111 114 95 66 117 115 67 114 101 97 116 111 114 49]))">RLUb/Controller/y_BusCreator/y_BusCreator_BusCreator1</a>
+</TD>
+<TD>Error</TD>
+<TD>Output signals to bus element ports cannot have different sample time values.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcommon:nativefloatingpoint:NFPDataConvFixedError" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 80 108 97 110 116 47 82 76 85 98 95 68 84 70 88 47 68 97 116 97 32 84 121 112 101 32 67 111 110 118 101 114 115 105 111 110]))">RLUb/Plant/RLUb_DTFX/Data Type Conversion</a>
+</TD>
+<TD>Error</TD>
+<TD>Native floating-point does not support Double to Fixed  and Fixed to Double conversion mode DTC block.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcommon:nativefloatingpoint:NFPDataConvFixedError" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 80 108 97 110 116 47 82 76 85 98 95 68 84 70 88 47 68 97 116 97 32 84 121 112 101 32 67 111 110 118 101 114 115 105 111 110 49]))">RLUb/Plant/RLUb_DTFX/Data Type Conversion1</a>
+</TD>
+<TD>Error</TD>
+<TD>Native floating-point does not support Double to Fixed  and Fixed to Double conversion mode DTC block.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:validate:invalidrates" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 80 108 97 110 116 47 82 76 85 98 95 68 84 70 88 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 95 49]))">RLUb/Plant/RLUb_DTFX/Rate Transition/Rate Transition_1</a>
+</TD>
+<TD>Error</TD>
+<TD>The input or output rates of rate transition block can not be zero or Inf.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:validate:invalidrates" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 80 108 97 110 116 47 82 76 85 98 95 68 84 70 88 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 95 50]))">RLUb/Plant/RLUb_DTFX/Rate Transition/Rate Transition_2</a>
+</TD>
+<TD>Error</TD>
+<TD>The input or output rates of rate transition block can not be zero or Inf.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:validate:invalidrates" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 80 108 97 110 116 47 82 76 85 98 95 68 84 70 88 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 49 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 49 95 49]))">RLUb/Plant/RLUb_DTFX/Rate Transition1/Rate Transition1_1</a>
+</TD>
+<TD>Error</TD>
+<TD>The input or output rates of rate transition block can not be zero or Inf.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:validate:invalidrates" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 80 108 97 110 116 47 82 76 85 98 95 68 84 70 88 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 49 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 49 95 50]))">RLUb/Plant/RLUb_DTFX/Rate Transition1/Rate Transition1_2</a>
+</TD>
+<TD>Error</TD>
+<TD>The input or output rates of rate transition block can not be zero or Inf.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:validate:invalidrates" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 80 108 97 110 116 47 82 76 85 98 95 68 84 70 88 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 50 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 50 95 49]))">RLUb/Plant/RLUb_DTFX/Rate Transition2/Rate Transition2_1</a>
+</TD>
+<TD>Error</TD>
+<TD>The input or output rates of rate transition block can not be zero or Inf.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:validate:invalidrates" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 80 108 97 110 116 47 82 76 85 98 95 68 84 70 88 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 50 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 50 95 50]))">RLUb/Plant/RLUb_DTFX/Rate Transition2/Rate Transition2_2</a>
+</TD>
+<TD>Error</TD>
+<TD>The input or output rates of rate transition block can not be zero or Inf.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:validate:invalidrates" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 80 108 97 110 116 47 82 76 85 98 95 68 84 70 88 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 50 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 50 95 51]))">RLUb/Plant/RLUb_DTFX/Rate Transition2/Rate Transition2_3</a>
+</TD>
+<TD>Error</TD>
+<TD>The input or output rates of rate transition block can not be zero or Inf.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:validate:invalidrates" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 80 108 97 110 116 47 82 76 85 98 95 68 84 70 88 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 50 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 50 95 52]))">RLUb/Plant/RLUb_DTFX/Rate Transition2/Rate Transition2_4</a>
+</TD>
+<TD>Error</TD>
+<TD>The input or output rates of rate transition block can not be zero or Inf.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:validate:unsupportedrtmode" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 95 49]))">RLUb/Rate Transition/Rate Transition_1</a>
+</TD>
+<TD>Error</TD>
+<TD>Rate Transition block is supported only if both Data Integrity and Deterministic Data Transfer are ensured.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:validate:invalidrates" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 95 49]))">RLUb/Rate Transition/Rate Transition_1</a>
+</TD>
+<TD>Error</TD>
+<TD>The input or output rates of rate transition block can not be zero or Inf.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:validate:unsupportedrtmode" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 95 50]))">RLUb/Rate Transition/Rate Transition_2</a>
+</TD>
+<TD>Error</TD>
+<TD>Rate Transition block is supported only if both Data Integrity and Deterministic Data Transfer are ensured.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:validate:invalidrates" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 95 50]))">RLUb/Rate Transition/Rate Transition_2</a>
+</TD>
+<TD>Error</TD>
+<TD>The input or output rates of rate transition block can not be zero or Inf.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:validate:busMultirateUnsupported" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 99 104 101 100 117 108 101 114 47 66 117 115 10 67 114 101 97 116 111 114 53]))">RLUb/Scheduler/Bus
+Creator5</a>
+</TD>
+<TD>Error</TD>
+<TD>All BusCreator input signals are required to have same rate for HDL code generation.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:validate:busMultirateUnsupported" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 117 98 115 121 115 116 101 109 47 66 117 115 10 67 114 101 97 116 111 114 54]))">RLUb/Subsystem/Bus
+Creator6</a>
+</TD>
+<TD>Error</TD>
+<TD>All BusCreator input signals are required to have same rate for HDL code generation.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:validate:unsupportedrtmode" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 117 98 115 121 115 116 101 109 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 49]))">RLUb/Subsystem/Rate Transition1</a>
+</TD>
+<TD>Error</TD>
+<TD>Rate Transition block is supported only if both Data Integrity and Deterministic Data Transfer are ensured.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:validate:unsupportedrtmode" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 117 98 115 121 115 116 101 109 47 82 97 116 101 32 84 114 97 110 115 105 116 105 111 110 50]))">RLUb/Subsystem/Rate Transition2</a>
+</TD>
+<TD>Error</TD>
+<TD>Rate Transition block is supported only if both Data Integrity and Deterministic Data Transfer are ensured.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:validate:HitCrossDirectionMode" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 117 98 115 121 115 116 101 109 47 80 87 77 47 72 105 116 32 10 67 114 111 115 115 105 110 103]))">RLUb/Subsystem/PWM/Hit 
+Crossing</a>
+</TD>
+<TD>Error</TD>
+<TD>HitCross direction mode 'either' is not supported for HDL code generation.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcommon:nativefloatingpoint:Nfp_unsupported_block" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 117 98 115 121 115 116 101 109 47 80 87 77 47 72 105 116 32 10 67 114 111 115 115 105 110 103]))">RLUb/Subsystem/PWM/Hit 
+Crossing</a>
+</TD>
+<TD>Error</TD>
+<TD>Block 'RLUb/Subsystem/PWM/Hit 
+Crossing' is unsupported for HDL code generation when in native floating-point mode.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcommon:nativefloatingpoint:Nfp_unsupported_block" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 117 98 115 121 115 116 101 109 47 80 87 77 47 72 105 116 32 10 67 114 111 115 115 105 110 103 49]))">RLUb/Subsystem/PWM/Hit 
+Crossing1</a>
+</TD>
+<TD>Error</TD>
+<TD>Block 'RLUb/Subsystem/PWM/Hit 
+Crossing1' is unsupported for HDL code generation when in native floating-point mode.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcommon:nativefloatingpoint:Nfp_unsupported_block" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 117 98 115 121 115 116 101 109 47 80 87 77 47 82 101 108 97 121]))">RLUb/Subsystem/PWM/Relay</a>
+</TD>
+<TD>Error</TD>
+<TD>Block 'RLUb/Subsystem/PWM/Relay' is unsupported for HDL code generation when in native floating-point mode.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:validate:mixeddoubleUnhandled" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 117 98 115 121 115 116 101 109 47 80 87 77 47 83 117 109]))">RLUb/Subsystem/PWM/Sum</a>
+</TD>
+<TD>Error</TD>
+<TD>Unhandled mixed double, single, and non-real datatypes at ports of block.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="hdlcoder:validate:mixeddoubleUnhandled" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 117 98 115 121 115 116 101 109 47 80 87 77 47 83 117 109 49]))">RLUb/Subsystem/PWM/Sum1</a>
+</TD>
+<TD>Error</TD>
+<TD>Unhandled mixed double, single, and non-real datatypes at ports of block.</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcoder:engine:ReuseRequiresInvariantConstants" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');open_system(char([82 76 85 98]))">RLUb</a>
+</TD>
+<TD>Warning</TD>
+<TD>HDL code from identical atomic subsystems can only be shared when the optimization configuration parameter 'Default parameter behavior' is set to 'Inlined'.</TD>
+</TR>
+<TR bgcolor="#F0F0F0"><TD>
+<a alt="HDLShared:hdlshared:MultirateSolver" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');open_system(char([82 76 85 98]))">RLUb</a>
+</TD>
+<TD>Warning</TD>
+<TD>HDL test bench generation for multirate models requires a fixed step, discrete solver in single tasking mode. In the Solver pane of the configuration parameters dialog box, ensure the solver type is set to "Fixed-step" and solver to "discrete". To configure the solver to single tasking mode, under Solver details, clear the options "Treat each discrete rate as a separate task" and "Automatically handle rate transition for data transfer".</TD>
+</TR>
+<TR bgcolor="#FFFFFF"><TD>
+<a alt="hdlcommon:nativefloatingpoint:InefficientSwitchCriteria" href="matlab:hilite(get_param(char([82 76 85 98]),'object'),'none');hilite_system(char([82 76 85 98 47 83 117 98 115 121 115 116 101 109 47 80 87 77 47 83 119 105 116 99 104]))">RLUb/Subsystem/PWM/Switch</a>
+</TD>
+<TD>Warning</TD>
+<TD>Chosen switch criteria with a floating-point type is not optimal and can introduce extra latency. Select 'u2 ~= 0' criteria for the most efficient results with native floating-point code generation.</TD>
+</TR>
+</TABLE>
+<BR><BR> </div></div></div></div>
+                    <div class="grid_192">
+                        <div class="footer_container">
+                            <div class="footer">
+                                <ul class="footernav">
+                                    <li class="footernav_trademarks"><a href="C:/Program Files/MATLAB/R2018b/help/acknowledgments.html">Acknowledgments</a></li>
+                                    <li class="footernav_trademarks"><a href="C:/Program%20Files/MATLAB/R2018b/trademarks.txt">Trademarks</a></li>
+                                    <li class="footernav_patents"><a href="C:/Program%20Files/MATLAB/R2018b/patents.txt">Patents</a></li>
+                                    <li class="footernav_help"><a href="C:/Program Files/MATLAB/R2018b/license_agreement.txt">Terms of Use</a></li>
+                                </ul>
+                                <div class="copyright">&copy; 1994-2026 The MathWorks, Inc.</div>
+                            </div>
+                        </div>
+                    </div>
+
+        <script type="text/javascript">
+
+$(document).ready( setTimeout( function () {
+                   $(".expandAllLink").trigger('click');
+            }, 50 ) );
+
+        </script>
+        
+</body>
+</html>

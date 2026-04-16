@@ -1,0 +1,12 @@
+#-----------------------------------------------------------
+# Vivado v2018.2.2 (64-bit)
+# SW Build 2348494 on Mon Oct  1 18:25:44 MDT 2018
+# IP Build 2318053 on Mon Oct  1 21:44:26 MDT 2018
+# Start of session at: Fri Mar 27 14:59:31 2026
+# Process ID: 14588
+# Current directory: Q:/work/hdl_prj/vivado_ip_prj
+# Command line: vivado.exe -mode batch -source vivado_insert_ip.tcl
+# Log file: Q:/work/hdl_prj/vivado_ip_prj/vivado.log
+# Journal file: Q:/work/hdl_prj/vivado_ip_prj\vivado.jou
+#-----------------------------------------------------------
+source vivado_insert_ip.tcl
