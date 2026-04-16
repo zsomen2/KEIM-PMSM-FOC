@@ -1,1 +1,29 @@
 .SimulinkProject
+cache
+
+# MATLAB/Simulink generated files
+/cache/
+*.slxc
+*.asv
+*.autosave
+*.m~
+slprj/
+codegen/
+/amer_hil/amer_hil/work/**
+/amer_hil/amer_hil/codegen/**
+
+# HDL Coder / Vivado generated files and logs
+.Xil/
+*.jou
+*.log
+*.backup.jou
+*.backup.log
+*.str
+*.dmp
+*.pb
+*.wdb
+*.wdf
+
+# OS/editor noise
+Thumbs.db
+Desktop.ini
