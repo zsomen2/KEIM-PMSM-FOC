@@ -1,18 +1,21 @@
-.SimulinkProject
-cache
-
-# MATLAB/Simulink generated files
+# Simulink project metadata and local caches
+.SimulinkProject/
+cache/
 /cache/
+/amer_hil/amer_hil/.SimulinkProject/
+
+# MATLAB / Simulink generated files
 *.slxc
 *.asv
 *.autosave
 *.m~
 slprj/
 codegen/
-/amer_hil/amer_hil/work/**
-/amer_hil/amer_hil/codegen/**
+/amer_hil/amer_hil/work/
+/amer_hil/amer_hil/codegen/
 
-# HDL Coder / Vivado generated files and logs
+# HDL Coder / Vivado generated projects and artifacts
+/amer_hil/amer_hil/hdl_prj/
 .Xil/
 *.jou
 *.log
@@ -24,8 +27,9 @@ codegen/
 *.wdb
 *.wdf
 
-# OS/editor noise
+# OS / editor noise
 Thumbs.db
 Desktop.ini
 
-orai anyag
+# Local course material
+orai anyag/
