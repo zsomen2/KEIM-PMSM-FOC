@@ -7,17 +7,19 @@ function [control, debug] = pmsm_foc_step(sensor, par, reset, cfg)
 
 %#codegen
 
-persistent id_int iq_int latched_fault
+persistent id_int iq_int speed_int latched_fault
 
 if isempty(id_int)
     id_int = single(0);
     iq_int = single(0);
+    speed_int = single(0);
     latched_fault = false;
 end
 
 if reset || par.fault_reset
     id_int = single(0);
     iq_int = single(0);
+    speed_int = single(0);
     latched_fault = false;
 end
 
@@ -39,14 +41,27 @@ s = single(sin(theta_e));
 id =  c*ialpha + s*ibeta;
 iq = -s*ialpha + c*ibeta;
 
-id_ref = clamp_single(single(par.Id_ref), -single(cfg.I_limit), single(cfg.I_limit));
-iq_ref = clamp_single(single(par.Iq_ref), -single(cfg.I_limit), single(cfg.I_limit));
-
 fault_now = sensor.fault || udc < single(cfg.Udc_min) || ...
     abs(ia) > single(cfg.I_limit) || abs(ib) > single(cfg.I_limit) || abs(ic) > single(cfg.I_limit);
 latched_fault = latched_fault || fault_now;
 
 enable = par.Start && ~latched_fault;
+speed_mode = uint8(par.ctrl_mode) == uint8(1);
+
+id_ref = clamp_single(single(par.Id_ref), -single(cfg.I_limit), single(cfg.I_limit));
+iq_ref = clamp_single(single(par.Iq_ref), -single(cfg.I_limit), single(cfg.I_limit));
+
+if enable && speed_mode
+    speed_err = single(par.speed_ref) - single(sensor.rpm);
+    iq_speed_unsat = single(par.Iq_ref) + single(cfg.Speed_Kp)*speed_err + speed_int;
+    iq_ref = clamp_single(iq_speed_unsat, -single(cfg.Speed_Iq_limit), single(cfg.Speed_Iq_limit));
+
+    if iq_speed_unsat == iq_ref || sign_nozero(speed_err) ~= sign_nozero(iq_speed_unsat)
+        speed_int = speed_int + single(cfg.Speed_Ki)*speed_err;
+    end
+else
+    speed_int = single(0);
+end
 
 if enable
     ed = id_ref - id;

@@ -11,8 +11,18 @@ cache/
 *.m~
 slprj/
 codegen/
-/amer_hil/amer_hil/work/
 /amer_hil/amer_hil/codegen/
+
+# Keep generated work products ignored by default, but allow the DSP deploy
+# artifacts that are needed by CCS/HiTerm and SW_Downloader.
+/amer_hil/amer_hil/work/*
+!/amer_hil/amer_hil/work/codegen/
+/amer_hil/amer_hil/work/codegen/*
+!/amer_hil/amer_hil/work/codegen/Controller_DSP.out
+!/amer_hil/amer_hil/work/codegen/Controller_DSP.mhx
+!/amer_hil/amer_hil/work/codegen/Controller_DSP_ert_rtw/
+/amer_hil/amer_hil/work/codegen/Controller_DSP_ert_rtw/*
+!/amer_hil/amer_hil/work/codegen/Controller_DSP_ert_rtw/Controller_DSP.map
 
 # HDL Coder / Vivado generated projects and artifacts
 /amer_hil/amer_hil/hdl_prj/

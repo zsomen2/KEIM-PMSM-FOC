@@ -218,6 +218,112 @@ Megfigyelheto jelek a config szerint:
 - `Ib`
 - `Ic`
 
+### 5.3. Excel-makros monitor definiciok
+
+A repo alapjan a monitor definicioknak van egy Exceles forrasa is. Ezek a workbookok VBA-t tartalmaznak, es a bennuk levo tablazatokbol generalodik a monitor leiras.
+
+RLUb-hoz a fontos workbook:
+
+- `config/RLUb_HIL.xls`
+
+DSP monitor altalanos workbook:
+
+- `ext/MUCI/MUCI_TermDefs.xls`
+
+Fontos kulonbseg:
+
+- a HiTerm futas kozben nem az Excelbol olvas
+- az Excel a forras, a futaskor hasznalt eredmeny pedig a generalt monitor definicio
+
+Gyakorlatban ez tipikusan ezt jelenti:
+
+- DSP oldalon a workbookbol lesz `Term_defs.c` es `Term_defs.h`
+- FPGA/HIL oldalon a workbook a monitor valtozolistat es cimhivatkozasokat definialja
+
+Melyik lap mire valo a `RLUb_HIL.xls`-ben:
+
+- `Tab-Read` -> FPGA-bol olvasott valtozok
+- `Tab-Write` -> FPGA fele irhato valtozok
+- `Tab-FPGA` -> monitor sajat rendszer/szerviz valtozoi
+- `Units` -> hasznalhato egysegek
+- `cTerm_defs`, `hTerm_defs` -> a generalt definiciok szoveges nezetben
+
+Az aktualis RLUb workbookban a `Tab-Read` eleje peldaul ezeket tartalmazza:
+
+- `Cnt`
+- `SW`
+- `SlowIn`
+- `Iout`
+- `Vout`
+
+A `Tab-Write` eleje:
+
+- `CntLimit`
+- `SlowOut`
+- `Status`
+- `Fail`
+- `Encoder`
+- `LEDs`
+- `Udc`
+- `Ub`
+
+Mit kell beleirni a HIL workbook oszlopaiba:
+
+- `Name of variable @ PC` -> ez lesz a HiTermben lathato nev
+- `Unit` -> a `Units` lapon definialt egysegnev, pl. `UNIT_A`, `UNIT_V`
+- `16bit` -> `x`, ha 16 bites ertek
+- `Signed` -> `x`, ha elojeles ertek
+- `IQ` -> fixpontos `_IQn` jeloleshez az `n` ertek
+- `Shift` -> megjelenitesi skalaeltolas, ha szukseges
+- `Float` -> `x`, ha lebegopontos valtozo
+- `WR` -> `x`, ha a monitorbol irhato
+- `HEXA` -> `x`, ha hexadecimalis megjelenites kell
+- `FPGA Address` -> a HIL monitor regisztercime
+- `init_value` -> kezdo/default ertek
+- `max_value` -> maximalis ertek
+
+RLUb pelda:
+
+- `Iout`: signed, 32 bites, `IQ=17`, cim `6`
+- `Vout`: signed, 32 bites, `IQ=16`, cim `8`
+- `Udc`: irhato, signed, `IQ=16`, cim `268`
+
+Gyakorlati szabaly:
+
+- uj olvasott HIL jel a `Tab-Read` lapra kerul
+- uj irhato HIL parameter a `Tab-Write` lapra kerul
+- a `FPGA Address` csak akkor valtozzon, ha a HIL monitor terkepet is tudatosan modositod
+
+Mire figyelj kitolteskor:
+
+- a generalt header alapjan a `MAX_CHAR_LEN` erteke `11`
+- emiatt a valtozoneveket tartsd legfeljebb `11` karakteren, vagy ellenorizd a generator korlatait
+- egy valtozonal csak az egyik tipuslogika legyen ertelmes
+- peldaul ne jelolj egyszerre lebegopontot es fixpontos `IQ` formatumot
+- a rossz `IQ` miatt a HiTermben latszolag hibas nagysagrendu adat jelenhet meg
+
+Hasznalat:
+
+1. Nyisd meg a megfelelo workbookot Excelben.
+2. Engedelyezd a makrokat.
+3. A megfelelo tabon szerkeszd a valtozolistat.
+4. Ellenorizd az egyseget, az adattipust, az `IQ`-t es az irhatosagot.
+5. Futtasd a workbook export/generalas makrojat.
+6. Ellenorizd, hogy a `cTerm_defs` es `hTerm_defs` lap frissult-e.
+7. Az exportalt/generalt fajlokat frissitsd a projektben.
+
+A repo-bol az egyertelmuen latszik, hogy a workbookok generalt tartalmat tartalmaznak, de a konkret makronev nem olvashato ki megbizhatoan. Emiatt a biztos workflow:
+
+- szerkesztes a tablazatos lapokon
+- workbook-makro futtatasa
+- a generalt monitor definiciok frissitese
+
+Mit ne irj at rutinbol:
+
+- ne valtoztasd a cimeket csak azert, mert sorokat rendezel at
+- ne modositsd a `Tab-FPGA` rendszer-szintu sorait, ha nem tudod pontosan mit csinalnak
+- ne a `cTerm_defs` vagy `hTerm_defs` lapon szerkessz kezileg, mert azok generalt nezetek
+
 ## 6. Recorder hasznalata
 
 A HiTerm recorder egy triggerelt jelrogzito. Nem csak "elo" adatot mutat, hanem trigger alapjan rogzitett ablakkent is tudsz jeleket nezni.

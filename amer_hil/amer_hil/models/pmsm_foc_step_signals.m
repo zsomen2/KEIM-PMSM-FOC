@@ -1,23 +1,25 @@
 function [Da, Db, Dc, gate_en, fault, Id, Iq, Vd, Vq, theta_e] = pmsm_foc_step_signals( ...
-    Iabc, Udc, theta, sensor_fault, Start, Id_ref, Iq_ref, fault_reset, ...
-    pp, Id_Kp, Id_Ki, Iq_Kp, Iq_Ki, I_limit, Udc_min, modulation_limit)
+    Iabc, Udc, theta, rpm, sensor_fault, Start, Id_ref, Iq_ref, speed_ref, ctrl_mode, fault_reset, ...
+    pp, Id_Kp, Id_Ki, Iq_Kp, Iq_Ki, Speed_Kp, Speed_Ki, Speed_Iq_limit, I_limit, Udc_min, modulation_limit)
 %PMSM_FOC_STEP_SIGNALS Code-generation friendly scalar PMSM FOC core.
 %
 % This wrapper avoids bus and struct inference inside MATLAB Function blocks.
 
 %#codegen
 
-persistent id_int iq_int latched_fault
+persistent id_int iq_int speed_int latched_fault
 
 if isempty(id_int)
     id_int = single(0);
     iq_int = single(0);
+    speed_int = single(0);
     latched_fault = false;
 end
 
 if fault_reset
     id_int = single(0);
     iq_int = single(0);
+    speed_int = single(0);
     latched_fault = false;
 end
 
@@ -37,14 +39,27 @@ s = single(sin(theta_e));
 Id =  c*ialpha + s*ibeta;
 Iq = -s*ialpha + c*ibeta;
 
-id_ref_limited = clamp_single(single(Id_ref), -single(I_limit), single(I_limit));
-iq_ref_limited = clamp_single(single(Iq_ref), -single(I_limit), single(I_limit));
-
 fault_now = logical(sensor_fault) || udc < single(Udc_min) || ...
     abs(ia) > single(I_limit) || abs(ib) > single(I_limit) || abs(ic) > single(I_limit);
 latched_fault = latched_fault || fault_now;
 
 enable = logical(Start) && ~latched_fault;
+speed_mode = uint8(ctrl_mode) == uint8(1);
+
+id_ref_limited = clamp_single(single(Id_ref), -single(I_limit), single(I_limit));
+iq_ref_limited = clamp_single(single(Iq_ref), -single(I_limit), single(I_limit));
+
+if enable && speed_mode
+    speed_err = single(speed_ref) - single(rpm);
+    iq_speed_unsat = single(Iq_ref) + single(Speed_Kp)*speed_err + speed_int;
+    iq_ref_limited = clamp_single(iq_speed_unsat, -single(Speed_Iq_limit), single(Speed_Iq_limit));
+
+    if iq_speed_unsat == iq_ref_limited || sign_nozero(speed_err) ~= sign_nozero(iq_speed_unsat)
+        speed_int = speed_int + single(Speed_Ki)*speed_err;
+    end
+else
+    speed_int = single(0);
+end
 
 if enable
     ed = id_ref_limited - Id;
