@@ -4,6 +4,20 @@ scriptDir = fileparts(mfilename('fullpath'));
 projectRoot = fileparts(scriptDir);
 addpath(scriptDir);
 addpath(fullfile(projectRoot, 'data'));
+addpath(genpath(fullfile(projectRoot, 'plugins')));
+addpath(genpath(fullfile(projectRoot, 'utilities')));
+addpath(genpath(fullfile(projectRoot, 'ipcores')));
+
+rehash toolboxcache;
+if exist('sl_refresh_customizations', 'file') == 2
+    sl_refresh_customizations;
+elseif exist('Advisor.Manager.refresh_customizations', 'file') == 2
+    Advisor.Manager.refresh_customizations;
+end
+
+if exist('xilinxpath', 'file') == 2
+    xilinxpath;
+end
 
 % PMSM plant and fixed-point scaling parameters.
 pmsm_init;
@@ -107,6 +121,19 @@ ctrl_mode.CoderInfo.StorageClass = 'ExportedGlobal';
 fault_reset = Simulink.Parameter(boolean(0));
 fault_reset.CoderInfo.StorageClass = 'ExportedGlobal';
 
+% Diagnostics controlled from MATLAB scripts only.
+% theta_sign = +1 keeps the existing encoder polarity.
+% phase_swap_bc = true swaps phase B/C routing in the harness for checks.
+% open_loop_mode = true forces a fixed q-axis current command for a motor response test.
+theta_sign = Simulink.Parameter(int8(-1));
+theta_sign.CoderInfo.StorageClass = 'ExportedGlobal';
+phase_swap_bc = Simulink.Parameter(boolean(0));
+phase_swap_bc.CoderInfo.StorageClass = 'ExportedGlobal';
+open_loop_mode = Simulink.Parameter(boolean(0));
+open_loop_mode.CoderInfo.StorageClass = 'ExportedGlobal';
+open_loop_iq_ref = Simulink.Parameter(single(5));
+open_loop_iq_ref.CoderInfo.StorageClass = 'ExportedGlobal';
+
 % Protection and modulation limits.
 I_limit = Simulink.Parameter(single(Imax));
 I_limit.CoderInfo.StorageClass = 'ExportedGlobal';
@@ -130,10 +157,11 @@ FOCConfig.Udc_min = single(Udc_min.Value);
 FOCConfig.modulation_limit = single(modulation_limit.Value);
 
 % ADC scaling for the existing three-channel C2000 skeleton.
+% The controller harness uses the three ADC inputs as phase current sensors.
 AnalogChA_ini = struct;
 AnalogChA_ini.value = single([0 0 0]);
-AnalogChA_ini.gain = single([UdcFS UdcFS 2 * IabcFS] / 4096);
-AnalogChA_ini.offset = single([0 0 IabcFS]);
+AnalogChA_ini.gain = single([2 * IabcFS 2 * IabcFS 2 * IabcFS] / 4096);
+AnalogChA_ini.offset = single([IabcFS IabcFS IabcFS]);
 AnalogChA_ini.comp = single([0 0 0]);
 
 % Compatibility variable used by existing C2000 scheduling blocks.
