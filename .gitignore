@@ -13,21 +13,32 @@ slprj/
 codegen/
 /amer_hil/amer_hil/codegen/
 
-# Keep generated work products ignored by default, but allow the DSP deploy
-# artifacts that are needed by CCS/HiTerm and SW_Downloader.
+# MATLAB/HDL build output directories. Keep generated trees ignored by
+# default, but allow the programming artifacts needed for DSP/FPGA flashing.
 /amer_hil/amer_hil/work/*
 !/amer_hil/amer_hil/work/codegen/
 /amer_hil/amer_hil/work/codegen/*
 !/amer_hil/amer_hil/work/codegen/Controller_DSP.out
 !/amer_hil/amer_hil/work/codegen/Controller_DSP.mhx
-!/amer_hil/amer_hil/work/codegen/Controller_DSP_ert_rtw/
-/amer_hil/amer_hil/work/codegen/Controller_DSP_ert_rtw/*
-!/amer_hil/amer_hil/work/codegen/Controller_DSP_ert_rtw/Controller_DSP.map
-!/amer_hil/amer_hil/work/codegen/Controller_DSP_ert_rtw/Controller_DSP.c
-!/amer_hil/amer_hil/work/codegen/Controller_DSP_ert_rtw/MW_c28xx_qep.c
+!/amer_hil/amer_hil/work/hdl_prj*/
+/amer_hil/amer_hil/work/hdl_prj*/**
+!/amer_hil/amer_hil/work/hdl_prj*/vivado_ip_prj/
+!/amer_hil/amer_hil/work/hdl_prj*/vivado_ip_prj/vivado_prj.runs/
+!/amer_hil/amer_hil/work/hdl_prj*/vivado_ip_prj/vivado_prj.runs/impl_1/
+!/amer_hil/amer_hil/work/hdl_prj*/vivado_ip_prj/vivado_prj.runs/impl_1/design_1_wrapper.bit
 
 # HDL Coder / Vivado generated projects and artifacts
-/amer_hil/amer_hil/hdl_prj/
+/amer_hil/amer_hil/hdl_prj*/**
+!/amer_hil/amer_hil/hdl_prj*/vivado_ip_prj/
+!/amer_hil/amer_hil/hdl_prj*/vivado_ip_prj/vivado_prj.runs/
+!/amer_hil/amer_hil/hdl_prj*/vivado_ip_prj/vivado_prj.runs/impl_1/
+!/amer_hil/amer_hil/hdl_prj*/vivado_ip_prj/vivado_prj.runs/impl_1/design_1_wrapper.bit
+/amer_hil/amer_hil/models/hdl_prj*/**
+!/amer_hil/amer_hil/models/hdl_prj*/vivado_ip_prj/
+!/amer_hil/amer_hil/models/hdl_prj*/vivado_ip_prj/vivado_prj.runs/
+!/amer_hil/amer_hil/models/hdl_prj*/vivado_ip_prj/vivado_prj.runs/impl_1/
+!/amer_hil/amer_hil/models/hdl_prj*/vivado_ip_prj/vivado_prj.runs/impl_1/design_1_wrapper.bit
+/amer_hil/amer_hil/models/_pmsm_control_unpacked*/
 .Xil/
 *.jou
 *.log
@@ -39,9 +50,16 @@ codegen/
 *.wdb
 *.wdf
 
+# Manually curated deploy artifacts. Copy the required DSP/FPGA programming
+# files here intentionally, for example .bit/.ltx/.out/.mhx/.hex.
+!/amer_hil/amer_hil/bin/
+!/amer_hil/amer_hil/bin/**
+
 # OS / editor noise
 Thumbs.db
 Desktop.ini
 
 # Local course material
 orai anyag/
+
+_inspect*

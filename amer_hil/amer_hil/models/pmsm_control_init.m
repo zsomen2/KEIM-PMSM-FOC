@@ -63,6 +63,10 @@ if SampleMode == 1
 else
     Ts = 1 / fsw;
 end
+Ts_current = Ts;
+% Fast FOC update period.
+Ts_speed = 1e-3;
+% Runtime speed loop period on the legacy 1 ms task.
 
 Td = 2 * Ts;                  % Effective loop delay used for PI design.
 
@@ -77,22 +81,24 @@ TI = 1 / (wc * tan(phi0 / 3));
 
 Id_Kp = Simulink.Parameter(single(wc * Ld));
 Id_Kp.CoderInfo.StorageClass = 'ExportedGlobal';
-Id_Ki = Simulink.Parameter(single(Id_Kp.Value * Ts / TI));
+% The inner current-loop integrators are implemented as fixed-step discrete
+% accumulators inside the PWM interrupt, so Ki includes Ts_current.
+Id_Ki = Simulink.Parameter(single((Id_Kp.Value / TI) * Ts_current));
 Id_Ki.CoderInfo.StorageClass = 'ExportedGlobal';
 
 Iq_Kp = Simulink.Parameter(single(wc * Lq));
 Iq_Kp.CoderInfo.StorageClass = 'ExportedGlobal';
-Iq_Ki = Simulink.Parameter(single(Iq_Kp.Value * Ts / TI));
+Iq_Ki = Simulink.Parameter(single((Iq_Kp.Value / TI) * Ts_current));
 Iq_Ki.CoderInfo.StorageClass = 'ExportedGlobal';
 
 % Outer speed-loop PI design. The speed loop outputs the q-axis current
 % reference used by the inner FOC current loop when ctrl_mode == 1.
-Speed_Kp = Simulink.Parameter(single(0.6));
+Speed_Kp = Simulink.Parameter(single(0.4));
 % A / rpm 
 Speed_Kp.CoderInfo.StorageClass = 'ExportedGlobal';
-Speed_Ki = Simulink.Parameter(single(Speed_Kp.Value * Ts / 0.03));
+Speed_Ki = Simulink.Parameter(single(Speed_Kp.Value / 0.03));
 Speed_Ki.CoderInfo.StorageClass = 'ExportedGlobal';
-Speed_Iq_limit = Simulink.Parameter(single(50));
+Speed_Iq_limit = Simulink.Parameter(single(40));
 Speed_Iq_limit.CoderInfo.StorageClass = 'ExportedGlobal';
 
 % PWM and C2000 timing.
@@ -123,10 +129,13 @@ fault_reset.CoderInfo.StorageClass = 'ExportedGlobal';
 
 % Diagnostics controlled from MATLAB scripts only.
 % theta_sign = +1 keeps the existing encoder polarity.
+% theta_offset = electrical angle offset added after encoder scaling/sign.
 % phase_swap_bc = true swaps phase B/C routing in the harness for checks.
 % open_loop_mode = true forces a fixed q-axis current command for a motor response test.
 theta_sign = Simulink.Parameter(int8(-1));
 theta_sign.CoderInfo.StorageClass = 'ExportedGlobal';
+theta_offset = Simulink.Parameter(single(0));
+theta_offset.CoderInfo.StorageClass = 'ExportedGlobal';
 phase_swap_bc = Simulink.Parameter(boolean(0));
 phase_swap_bc.CoderInfo.StorageClass = 'ExportedGlobal';
 open_loop_mode = Simulink.Parameter(boolean(0));
@@ -142,9 +151,16 @@ Udc_min.CoderInfo.StorageClass = 'ExportedGlobal';
 modulation_limit = Simulink.Parameter(single(0.577350269189626));
 modulation_limit.CoderInfo.StorageClass = 'ExportedGlobal';
 
+% PWM adapter defaults.
+PWM_it_period = Simulink.Parameter(2);
+PWM_it_period.CoderInfo.StorageClass = 'ExportedGlobal';
+D_safe = Simulink.Parameter(single(D0));
+D_safe.CoderInfo.StorageClass = 'ExportedGlobal';
+
 FOCConfig = struct;
 FOCConfig.pp = single(pp);
-FOCConfig.Ts = single(Ts);
+FOCConfig.Ts = single(Ts_current);
+FOCConfig.Ts_speed = single(Ts_speed);
 FOCConfig.Id_Kp = single(Id_Kp.Value);
 FOCConfig.Id_Ki = single(Id_Ki.Value);
 FOCConfig.Iq_Kp = single(Iq_Kp.Value);
@@ -161,9 +177,15 @@ FOCConfig.modulation_limit = single(modulation_limit.Value);
 AnalogChA_ini = struct;
 AnalogChA_ini.value = single([0 0 0]);
 AnalogChA_ini.gain = single([2 * IabcFS 2 * IabcFS 2 * IabcFS] / 4096);
-AnalogChA_ini.offset = single([IabcFS IabcFS IabcFS]);
+% Per-channel current-sensor zero-current offsets identified from the
+% measured idle ADC averages on hardware (ADC ~= [1884 1864 1865]).
+AnalogChA_ini.offset = single([275.9765625 273.046875 273.193359375]);
 AnalogChA_ini.comp = single([0 0 0]);
 
 % Compatibility variable used by existing C2000 scheduling blocks.
-delay = Simulink.Parameter(uint16(0));
+% EPwm5 triggers the ADC on CMPA-up; keeping it at zero samples close to the
+% PWM edge and produces large current spikes on the HIL analog frontend.
+% Sampling near the middle of the 20 kHz ADC trigger period is the stable
+% default for the sigma-delta / analog mux chain.
+delay = Simulink.Parameter(uint16((TBPER2 + 1) / 2));
 delay.CoderInfo.StorageClass = 'ExportedGlobal';

@@ -7,9 +7,9 @@
  *
  * Code generated for Simulink model 'Controller_DSP'.
  *
- * Model version                  : 1.17
+ * Model version                  : 1.86
  * Simulink Coder version         : 9.0 (R2018b) 24-May-2018
- * C/C++ source code generated on : Wed May  6 12:46:18 2026
+ * C/C++ source code generated on : Mon May 11 11:36:34 2026
  *
  * Target selection: ert.tlc
  * Embedded hardware selection: Texas Instruments->C2000
@@ -76,6 +76,9 @@ uint16_T Status;                       /* '<S36>/bit_concat_unary' */
 uint16_T Encoder;                      /* '<S34>/bit_concat_unary' */
 
 /* Exported block parameters */
+real32_T D_safe = 0.5F;                /* Variable: D_safe
+                                        * Referenced by: '<S10>/D_safe'
+                                        */
 real32_T Id_Ki = 0.039747078F;         /* Variable: Id_Ki
                                         * Referenced by: '<S15>/Ki'
                                         */
@@ -94,29 +97,44 @@ real32_T Iq_Kp = 4.18879032F;          /* Variable: Iq_Kp
 real32_T Iq_ref = 0.0F;                /* Variable: Iq_ref
                                         * Referenced by: '<Root>/DSP_Iq_ref'
                                         */
-real32_T Speed_Iq_limit = 50.0F;       /* Variable: Speed_Iq_limit
+real32_T Speed_Iq_limit = 40.0F;       /* Variable: Speed_Iq_limit
                                         * Referenced by: '<S11>/Iq_limit'
                                         */
-real32_T Speed_Ki = 0.001F;            /* Variable: Speed_Ki
+real32_T Speed_Ki = 13.333334F;        /* Variable: Speed_Ki
                                         * Referenced by: '<S11>/Ki'
                                         */
-real32_T Speed_Kp = 0.6F;              /* Variable: Speed_Kp
+real32_T Speed_Kp = 0.4F;              /* Variable: Speed_Kp
                                         * Referenced by: '<S11>/Kp'
-                                        */
-real32_T Udc_min = 20.0F;              /* Variable: Udc_min
-                                        * Referenced by: '<S14>/Udc_min'
                                         */
 real32_T modulation_limit = 0.577350259F;/* Variable: modulation_limit
                                           * Referenced by: '<S20>/modulation_limit'
                                           */
+real32_T open_loop_iq_ref = 5.0F;      /* Variable: open_loop_iq_ref
+                                        * Referenced by: '<S11>/open_loop_iq_cmd'
+                                        */
 real32_T speed_ref = 0.0F;             /* Variable: speed_ref
                                         * Referenced by: '<Root>/DSP_speed_ref'
                                         */
-uint16_T delay = 0U;                   /* Variable: delay
+real32_T theta_offset = 0.0F;          /* Variable: theta_offset
+                                        * Referenced by: '<S4>/theta_offset_cmd'
+                                        */
+uint16_T delay = 2000U;                /* Variable: delay
                                         * Referenced by: '<S3>/Constant3'
                                         */
 boolean_T Start = 0;                   /* Variable: Start
                                         * Referenced by: '<Root>/DSP_Start'
+                                        */
+boolean_T fault_reset = 0;             /* Variable: fault_reset
+                                        * Referenced by: '<Root>/DSP_fault_reset'
+                                        */
+boolean_T open_loop_mode = 0;          /* Variable: open_loop_mode
+                                        * Referenced by: '<S11>/open_loop_mode_sel'
+                                        */
+boolean_T phase_swap_bc = 0;           /* Variable: phase_swap_bc
+                                        * Referenced by: '<S4>/phase_swap_sel'
+                                        */
+int16_T theta_sign = -1;               /* Variable: theta_sign
+                                        * Referenced by: '<S4>/GainTheta'
                                         */
 uint16_T ctrl_mode = 0U;               /* Variable: ctrl_mode
                                         * Referenced by: '<Root>/DSP_ctrl_mode'
@@ -126,6 +144,8 @@ uint16_T ctrl_mode = 0U;               /* Variable: ctrl_mode
 Meas_t AnalogChA;                      /* '<Root>/Data Store Memory3' */
 CPLDOutput_t CPLDOut;                  /* '<Root>/Data Store Memory1' */
 CPLDInput_t CPLDIn;                    /* '<Root>/Data Store Memory2' */
+real32_T Id_mon;                       /* '<S10>/IdMonStore' */
+real32_T Iq_mon;                       /* '<S10>/IqMonStore' */
 uint16_T AdcStart;                     /* '<Root>/Data Store Memory' */
 uint16_T AdcStop;                      /* '<Root>/Data Store Memory4' */
 
@@ -154,26 +174,18 @@ void isr_int1pie1_task_fcn(void)
       real32_T rtb_GainDc;
       uint16_T rtb_Gain3;
       real32_T rtb_DTheta;
-      real32_T rtb_theta;
-      real32_T rtb_P_plus_I;
-      real32_T rtb_duty_C;
-      uint32_T PMSM_FOC_ELAPS_T;
+      real32_T rtb_theta_m;
+      real32_T rtb_modulation_limit;
+      real32_T rtb_Switch2;
+      real32_T rtb_P_plus_I_i;
+      boolean_T rtb_sat_or;
+      real32_T rtb_Valpha_sum;
+      real32_T rtb_Vbeta_sum;
       real32_T Udc;
-      boolean_T fault;
-      real32_T OutportBufferForDa;
+      real32_T Db_safe_switch;
       real32_T rtb_Sum1_idx_0;
       real32_T rtb_Sum1_idx_1;
-      real32_T rtb_error_tmp;
-
-      /* Asynchronous task reads absolute time. Data (absolute time)
-         transfers from low priority task (base rate) to high priority
-         task (asynchronous rate). Double buffers are used to ensure
-         data integrity.
-         -- rtmL2HLastBufWr is the buffer index that is written last.
-       */
-      Controller_DSP_M->Timing.clockTick3 =
-        Controller_DSP_M->Timing.rtmL2HDbBufClockTick
-        [Controller_DSP_M->Timing.rtmL2HLastBufWr];
+      uint16_T tmp;
 
       /* Outputs for Function Call SubSystem: '<Root>/ReadAnalogInputs' */
 
@@ -211,8 +223,40 @@ void isr_int1pie1_task_fcn(void)
        */
       rtb_Sum1_idx_0 = ((real32_T)Controller_DSP_B.ADC * AnalogChA.gain[0] -
                         AnalogChA.offset[0]) - AnalogChA.comp[0];
-      rtb_Sum1_idx_1 = ((real32_T)Controller_DSP_B.ADC1 * AnalogChA.gain[1] -
-                        AnalogChA.offset[1]) - AnalogChA.comp[1];
+
+      /* Switch: '<S4>/ADC1_swap' incorporates:
+       *  Constant: '<S4>/phase_swap_sel'
+       */
+      if ((real_T)phase_swap_bc >= 0.5) {
+        tmp = Controller_DSP_B.ADC1;
+      } else {
+        tmp = Controller_DSP_B.ADC2;
+      }
+
+      /* End of Switch: '<S4>/ADC1_swap' */
+
+      /* Sum: '<S4>/Sum1' incorporates:
+       *  DataStoreRead: '<S4>/Data Store Read'
+       *  Product: '<S4>/Product'
+       *  Sum: '<S4>/Sum'
+       */
+      rtb_Sum1_idx_1 = ((real32_T)tmp * AnalogChA.gain[1] - AnalogChA.offset[1])
+        - AnalogChA.comp[1];
+
+      /* DataStoreWrite: '<S4>/Data Store Write' */
+      AnalogChA.value[0] = rtb_Sum1_idx_0;
+      AnalogChA.value[1] = rtb_Sum1_idx_1;
+
+      /* Switch: '<S4>/ADC2_swap' incorporates:
+       *  Constant: '<S4>/phase_swap_sel'
+       */
+      if ((real_T)phase_swap_bc >= 0.5) {
+        tmp = Controller_DSP_B.ADC2;
+      } else {
+        tmp = Controller_DSP_B.ADC1;
+      }
+
+      /* End of Switch: '<S4>/ADC2_swap' */
 
       /* DataStoreWrite: '<S4>/Data Store Write' incorporates:
        *  DataStoreRead: '<S4>/Data Store Read'
@@ -220,10 +264,8 @@ void isr_int1pie1_task_fcn(void)
        *  Sum: '<S4>/Sum'
        *  Sum: '<S4>/Sum1'
        */
-      AnalogChA.value[0] = rtb_Sum1_idx_0;
-      AnalogChA.value[1] = rtb_Sum1_idx_1;
-      AnalogChA.value[2] = ((real32_T)Controller_DSP_B.ADC2 * AnalogChA.gain[2]
-                            - AnalogChA.offset[2]) - AnalogChA.comp[2];
+      AnalogChA.value[2] = ((real32_T)tmp * AnalogChA.gain[2] -
+                            AnalogChA.offset[2]) - AnalogChA.comp[2];
 
       /* S-Function (c2802xadc): '<S4>/UdcADC' */
       {
@@ -237,18 +279,22 @@ void isr_int1pie1_task_fcn(void)
        */
       Udc = 0.244140625F * (real32_T)Controller_DSP_B.UdcADC;
 
-      /* S-Function (c280xqep): '<S4>/eQEP1' */
+      /* S-Function (c280xqep): '<S4>/eQEP2 ' */
       {
-        Controller_DSP_B.eQEP1 = EQep2Regs.QPOSCNT;/*eQEP Position Counter*/
+        Controller_DSP_B.eQEP2 = EQep2Regs.QPOSCNT;/*eQEP Position Counter*/
       }
 
-      /* Gain: '<S4>/GainTheta' */
-      rtb_theta = 0.00153398083F * Controller_DSP_B.eQEP1;
+      /* Sum: '<S4>/theta_offset_sum' incorporates:
+       *  Constant: '<S4>/theta_offset_cmd'
+       *  Gain: '<S4>/GainTheta'
+       */
+      rtb_theta_m = 0.00153398083F * (real32_T)theta_sign *
+        Controller_DSP_B.eQEP2 + theta_offset;
 
       /* Sum: '<S4>/DTheta' incorporates:
        *  UnitDelay: '<S4>/ThetaPrev'
        */
-      rtb_DTheta = rtb_theta - Controller_DSP_DW.ThetaPrev_DSTATE;
+      rtb_DTheta = rtb_theta_m - Controller_DSP_DW.ThetaPrev_DSTATE;
 
       /* Sum: '<S4>/RpmAvgSum' incorporates:
        *  Fcn: '<S4>/WrapThetaDeltaFcn'
@@ -260,83 +306,60 @@ void isr_int1pie1_task_fcn(void)
        */
       Controller_DSP_DW.RpmAvgDelay_DSTATE += ((rtb_DTheta - (real32_T)floor
         ((rtb_DTheta + 3.14159274F) / 6.28318548F) * 6.28318548F) * 20000.0F *
-        9.54929638F - Controller_DSP_DW.RpmAvgDelay_DSTATE) * 0.125F;
+        9.54929638F - Controller_DSP_DW.RpmAvgDelay_DSTATE) * 0.01F;
 
       /* SignalConversion: '<S4>/BusConversion_InsertedFor_sensor_at_inport_0' incorporates:
        *  UnitDelay: '<S4>/RpmAvgDelay'
        */
       Controller_DSP_B.rpm = Controller_DSP_DW.RpmAvgDelay_DSTATE;
 
-      /* SignalConversion: '<S4>/BusConversion_InsertedFor_sensor_at_inport_0' incorporates:
-       *  DataStoreRead: '<S4>/CPLDInRead'
-       *  DataTypeConversion: '<S4>/FaultFromFAIL'
-       */
-      fault = (CPLDIn.FAIL != 0U);
-
       /* Update for UnitDelay: '<S4>/ThetaPrev' */
-      Controller_DSP_DW.ThetaPrev_DSTATE = rtb_theta;
+      Controller_DSP_DW.ThetaPrev_DSTATE = rtb_theta_m;
 
       /* End of Outputs for SubSystem: '<Root>/ReadAnalogInputs' */
 
       /* Outputs for Function Call SubSystem: '<S2>/PMSM_FOC' */
-      if (Controller_DSP_DW.PMSM_FOC_RESET_ELAPS_T) {
-        PMSM_FOC_ELAPS_T = 0UL;
-      } else {
-        PMSM_FOC_ELAPS_T = Controller_DSP_M->Timing.clockTick3 -
-          Controller_DSP_DW.PMSM_FOC_PREV_T;
-      }
+      /* Gain: '<S13>/pole_pairs' */
+      rtb_theta_m *= 3.0F;
 
-      Controller_DSP_DW.PMSM_FOC_PREV_T = Controller_DSP_M->Timing.clockTick3;
-      Controller_DSP_DW.PMSM_FOC_RESET_ELAPS_T = false;
+      /* Trigonometry: '<S18>/cos' incorporates:
+       *  Trigonometry: '<S16>/cos'
+       */
+      Db_safe_switch = (real32_T)cos(rtb_theta_m);
 
       /* Gain: '<S12>/one_over_sqrt3' incorporates:
        *  Gain: '<S12>/2ib'
        *  Sum: '<S12>/ia_plus_2ib'
        */
-      rtb_DTheta = (2.0F * rtb_Sum1_idx_1 + rtb_Sum1_idx_0) * 0.577350259F;
-
-      /* Gain: '<S13>/pole_pairs' */
-      rtb_theta *= 3.0F;
+      rtb_Sum1_idx_1 = (2.0F * rtb_Sum1_idx_1 + rtb_Sum1_idx_0) * 0.577350259F;
 
       /* Trigonometry: '<S18>/sin' incorporates:
        *  Trigonometry: '<S16>/sin'
        */
-      rtb_duty_C = (real32_T)sin(rtb_theta);
+      rtb_Vbeta_sum = (real32_T)sin(rtb_theta_m);
 
-      /* Trigonometry: '<S18>/cos' incorporates:
-       *  Trigonometry: '<S16>/cos'
-       */
-      rtb_error_tmp = (real32_T)cos(rtb_theta);
-
-      /* Sum: '<S15>/error' incorporates:
+      /* Sum: '<S18>/Id_sum' incorporates:
+       *  DataStoreWrite: '<S18>/WriteIdMon'
        *  Product: '<S18>/Ialpha_cos'
        *  Product: '<S18>/Ibeta_sin'
-       *  Sum: '<S18>/Id_sum'
        *  Trigonometry: '<S18>/cos'
        *  Trigonometry: '<S18>/sin'
        */
-      rtb_Sum1_idx_1 = Controller_DSP_B.Id_ref_h - (rtb_Sum1_idx_0 *
-        rtb_error_tmp + rtb_DTheta * rtb_duty_C);
+      Id_mon = rtb_Sum1_idx_0 * Db_safe_switch + rtb_Sum1_idx_1 * rtb_Vbeta_sum;
 
-      /* Gain: '<S15>/Ki' */
-      rtb_theta = Id_Ki * rtb_Sum1_idx_1;
-
-      /* DiscreteIntegrator: '<S15>/Integrator' */
-      if (Controller_DSP_DW.Integrator_SYSTEM_ENABLE == 0U) {
-        Controller_DSP_DW.Integrator_DSTATE_f += 0.001F * (real32_T)
-          PMSM_FOC_ELAPS_T * Controller_DSP_DW.Integrator_PREV_U;
-      }
-
-      /* End of DiscreteIntegrator: '<S15>/Integrator' */
+      /* Sum: '<S15>/error' incorporates:
+       *  DataStoreWrite: '<S18>/WriteIdMon'
+       */
+      rtb_theta_m = Controller_DSP_B.Id_ref_h - Id_mon;
 
       /* Sum: '<S15>/P_plus_I' incorporates:
        *  Gain: '<S15>/Kp'
+       *  UnitDelay: '<S15>/Integrator'
        */
-      rtb_P_plus_I = Id_Kp * rtb_Sum1_idx_1 +
-        Controller_DSP_DW.Integrator_DSTATE_f;
+      rtb_DTheta = Id_Kp * rtb_theta_m + Controller_DSP_DW.Integrator_DSTATE_l;
 
       /* Gain: '<S20>/modulation_limit' */
-      rtb_Sum1_idx_1 = modulation_limit * Udc;
+      rtb_modulation_limit = modulation_limit * Udc;
 
       /* Switch: '<S21>/Switch2' incorporates:
        *  Gain: '<S20>/neg_limit'
@@ -344,42 +367,39 @@ void isr_int1pie1_task_fcn(void)
        *  RelationalOperator: '<S21>/UpperRelop'
        *  Switch: '<S21>/Switch'
        */
-      if (rtb_P_plus_I > rtb_Sum1_idx_1) {
-        rtb_P_plus_I = rtb_Sum1_idx_1;
+      if (rtb_DTheta > rtb_modulation_limit) {
+        rtb_Switch2 = rtb_modulation_limit;
+      } else if (rtb_DTheta < -rtb_modulation_limit) {
+        /* Switch: '<S21>/Switch' incorporates:
+         *  Gain: '<S20>/neg_limit'
+         */
+        rtb_Switch2 = -rtb_modulation_limit;
       } else {
-        if (rtb_P_plus_I < -rtb_Sum1_idx_1) {
-          /* Switch: '<S21>/Switch' incorporates:
-           *  Gain: '<S20>/neg_limit'
-           */
-          rtb_P_plus_I = -rtb_Sum1_idx_1;
-        }
+        rtb_Switch2 = rtb_DTheta;
       }
 
       /* End of Switch: '<S21>/Switch2' */
 
-      /* Sum: '<S17>/error' incorporates:
+      /* Sum: '<S18>/Iq_sum' incorporates:
+       *  DataStoreWrite: '<S18>/WriteIqMon'
        *  Product: '<S18>/Ialpha_sin'
        *  Product: '<S18>/Ibeta_cos'
-       *  Sum: '<S18>/Iq_sum'
        *  Trigonometry: '<S18>/cos'
        *  Trigonometry: '<S18>/sin'
        */
-      rtb_Sum1_idx_0 = Controller_DSP_B.mode_switch - (rtb_DTheta *
-        rtb_error_tmp - rtb_Sum1_idx_0 * rtb_duty_C);
+      Iq_mon = rtb_Sum1_idx_1 * Db_safe_switch - rtb_Sum1_idx_0 * rtb_Vbeta_sum;
 
-      /* DiscreteIntegrator: '<S17>/Integrator' */
-      if (Controller_DSP_DW.Integrator_SYSTEM_ENABLE_d == 0U) {
-        Controller_DSP_DW.Integrator_DSTATE_k += 0.001F * (real32_T)
-          PMSM_FOC_ELAPS_T * Controller_DSP_DW.Integrator_PREV_U_o;
-      }
-
-      /* End of DiscreteIntegrator: '<S17>/Integrator' */
+      /* Sum: '<S17>/error' incorporates:
+       *  DataStoreWrite: '<S18>/WriteIqMon'
+       */
+      rtb_Sum1_idx_0 = Controller_DSP_B.open_loop_iq_switch - Iq_mon;
 
       /* Sum: '<S17>/P_plus_I' incorporates:
        *  Gain: '<S17>/Kp'
+       *  UnitDelay: '<S17>/Integrator'
        */
-      rtb_DTheta = Iq_Kp * rtb_Sum1_idx_0 +
-        Controller_DSP_DW.Integrator_DSTATE_k;
+      rtb_P_plus_I_i = Iq_Kp * rtb_Sum1_idx_0 +
+        Controller_DSP_DW.Integrator_DSTATE_p;
 
       /* Switch: '<S22>/Switch2' incorporates:
        *  Gain: '<S20>/neg_limit'
@@ -387,15 +407,15 @@ void isr_int1pie1_task_fcn(void)
        *  RelationalOperator: '<S22>/UpperRelop'
        *  Switch: '<S22>/Switch'
        */
-      if (rtb_DTheta > rtb_Sum1_idx_1) {
-        rtb_DTheta = rtb_Sum1_idx_1;
+      if (rtb_P_plus_I_i > rtb_modulation_limit) {
+        rtb_Sum1_idx_1 = rtb_modulation_limit;
+      } else if (rtb_P_plus_I_i < -rtb_modulation_limit) {
+        /* Switch: '<S22>/Switch' incorporates:
+         *  Gain: '<S20>/neg_limit'
+         */
+        rtb_Sum1_idx_1 = -rtb_modulation_limit;
       } else {
-        if (rtb_DTheta < -rtb_Sum1_idx_1) {
-          /* Switch: '<S22>/Switch' incorporates:
-           *  Gain: '<S20>/neg_limit'
-           */
-          rtb_DTheta = -rtb_Sum1_idx_1;
-        }
+        rtb_Sum1_idx_1 = rtb_P_plus_I_i;
       }
 
       /* End of Switch: '<S22>/Switch2' */
@@ -404,100 +424,129 @@ void isr_int1pie1_task_fcn(void)
        *  Product: '<S16>/Vd_cos'
        *  Product: '<S16>/Vq_sin'
        */
-      rtb_Sum1_idx_1 = rtb_P_plus_I * rtb_error_tmp - rtb_DTheta * rtb_duty_C;
-
-      /* Sum: '<S19>/duty_A' incorporates:
-       *  Constant: '<S19>/half_A'
-       *  Product: '<S19>/divide_A'
-       *  Sum: '<S19>/phase_A'
-       */
-      OutportBufferForDa = rtb_Sum1_idx_1 / Udc + 0.5F;
-
-      /* Saturate: '<S19>/clamp_A' */
-      if (OutportBufferForDa > 1.0F) {
-        /* SignalConversion: '<S10>/OutportBufferForDa' */
-        OutportBufferForDa = 1.0F;
-      } else {
-        if (OutportBufferForDa < 0.0F) {
-          /* SignalConversion: '<S10>/OutportBufferForDa' */
-          OutportBufferForDa = 0.0F;
-        }
-      }
-
-      /* End of Saturate: '<S19>/clamp_A' */
+      rtb_Valpha_sum = rtb_Switch2 * Db_safe_switch - rtb_Sum1_idx_1 *
+        rtb_Vbeta_sum;
 
       /* Sum: '<S16>/Vbeta_sum' incorporates:
        *  Product: '<S16>/Vd_sin'
        *  Product: '<S16>/Vq_cos'
        */
-      rtb_duty_C = rtb_P_plus_I * rtb_duty_C + rtb_DTheta * rtb_error_tmp;
+      rtb_Vbeta_sum = rtb_Switch2 * rtb_Vbeta_sum + rtb_Sum1_idx_1 *
+        Db_safe_switch;
 
-      /* Sum: '<S19>/duty_B' incorporates:
-       *  Constant: '<S19>/half_B'
-       *  Gain: '<S19>/minus_half_alpha_B'
-       *  Gain: '<S19>/sqrt3_half_beta_B'
-       *  Product: '<S19>/divide_B'
-       *  Sum: '<S19>/phase_B'
+      /* Switch: '<S10>/Da_safe_switch' incorporates:
+       *  Constant: '<S10>/D_safe'
+       *  Inport: '<S10>/Start'
+       *  Switch: '<S10>/Db_safe_switch'
+       *  Switch: '<S10>/Dc_safe_switch'
        */
-      rtb_DTheta = (-0.5F * rtb_Sum1_idx_1 + 0.866025388F * rtb_duty_C) / Udc +
-        0.5F;
+      if (Controller_DSP_B.Start_c) {
+        /* Sum: '<S19>/duty_A' incorporates:
+         *  Constant: '<S19>/half_A'
+         *  Product: '<S19>/divide_A'
+         *  Sum: '<S19>/phase_A'
+         */
+        rtb_modulation_limit = rtb_Valpha_sum / Udc + 0.5F;
 
-      /* Saturate: '<S19>/clamp_B' */
-      if (rtb_DTheta > 1.0F) {
-        rtb_DTheta = 1.0F;
-      } else {
-        if (rtb_DTheta < 0.0F) {
-          rtb_DTheta = 0.0F;
+        /* Saturate: '<S19>/clamp_A' */
+        if (rtb_modulation_limit > 1.0F) {
+          rtb_modulation_limit = 1.0F;
+        } else {
+          if (rtb_modulation_limit < 0.0F) {
+            rtb_modulation_limit = 0.0F;
+          }
         }
+
+        /* End of Saturate: '<S19>/clamp_A' */
+
+        /* Sum: '<S19>/duty_B' incorporates:
+         *  Constant: '<S19>/half_B'
+         *  Gain: '<S19>/minus_half_alpha_B'
+         *  Gain: '<S19>/sqrt3_half_beta_B'
+         *  Product: '<S19>/divide_B'
+         *  Sum: '<S19>/phase_B'
+         */
+        Db_safe_switch = (-0.5F * rtb_Valpha_sum + 0.866025388F * rtb_Vbeta_sum)
+          / Udc + 0.5F;
+
+        /* Saturate: '<S19>/clamp_B' */
+        if (Db_safe_switch > 1.0F) {
+          Db_safe_switch = 1.0F;
+        } else {
+          if (Db_safe_switch < 0.0F) {
+            Db_safe_switch = 0.0F;
+          }
+        }
+
+        /* End of Saturate: '<S19>/clamp_B' */
+
+        /* Sum: '<S19>/duty_C' incorporates:
+         *  Constant: '<S19>/half_C'
+         *  Gain: '<S19>/minus_half_alpha_C'
+         *  Gain: '<S19>/neg_sqrt3_half_beta_C'
+         *  Product: '<S19>/divide_C'
+         *  Sum: '<S19>/phase_C'
+         */
+        Udc = (-0.5F * rtb_Valpha_sum + -0.866025388F * rtb_Vbeta_sum) / Udc +
+          0.5F;
+
+        /* Saturate: '<S19>/clamp_C' */
+        if (Udc > 1.0F) {
+          Udc = 1.0F;
+        } else {
+          if (Udc < 0.0F) {
+            Udc = 0.0F;
+          }
+        }
+
+        /* End of Saturate: '<S19>/clamp_C' */
+      } else {
+        rtb_modulation_limit = D_safe;
+        Db_safe_switch = D_safe;
+        Udc = D_safe;
       }
 
-      /* End of Saturate: '<S19>/clamp_B' */
+      /* End of Switch: '<S10>/Da_safe_switch' */
 
-      /* Sum: '<S19>/duty_C' incorporates:
-       *  Constant: '<S19>/half_C'
-       *  Gain: '<S19>/minus_half_alpha_C'
-       *  Gain: '<S19>/neg_sqrt3_half_beta_C'
-       *  Product: '<S19>/divide_C'
-       *  Sum: '<S19>/phase_C'
+      /* Logic: '<S20>/sat_or' incorporates:
+       *  RelationalOperator: '<S20>/sat_vd'
+       *  RelationalOperator: '<S20>/sat_vq'
        */
-      rtb_Sum1_idx_1 = (-0.5F * rtb_Sum1_idx_1 + -0.866025388F * rtb_duty_C) /
-        Udc + 0.5F;
+      rtb_sat_or = ((rtb_DTheta != rtb_Switch2) || (rtb_P_plus_I_i !=
+        rtb_Sum1_idx_1));
 
-      /* Saturate: '<S19>/clamp_C' */
-      if (rtb_Sum1_idx_1 > 1.0F) {
-        rtb_Sum1_idx_1 = 1.0F;
-      } else {
-        if (rtb_Sum1_idx_1 < 0.0F) {
-          rtb_Sum1_idx_1 = 0.0F;
-        }
-      }
-
-      /* End of Saturate: '<S19>/clamp_C' */
-
-      /* Logic: '<S14>/gate_and' incorporates:
-       *  Constant: '<S14>/Udc_min'
-       *  Logic: '<S14>/fault_or'
-       *  Logic: '<S14>/not_fault'
-       *  RelationalOperator: '<S14>/Udc_low'
-       */
-      fault = (Controller_DSP_B.Start_c && ((!fault) && (!(Udc < Udc_min))));
-
-      /* Update for DiscreteIntegrator: '<S15>/Integrator' */
-      Controller_DSP_DW.Integrator_SYSTEM_ENABLE = 0U;
-      Controller_DSP_DW.Integrator_PREV_U = rtb_theta;
-
-      /* Update for DiscreteIntegrator: '<S17>/Integrator' incorporates:
+      /* Switch: '<S15>/Integrator_reset_switch' incorporates:
+       *  Constant: '<S15>/Integrator_zero'
+       *  Constant: '<S17>/Integrator_zero'
+       *  Gain: '<S15>/Ki'
        *  Gain: '<S17>/Ki'
+       *  Logic: '<S15>/sat_not'
+       *  Logic: '<S17>/sat_not'
+       *  Product: '<S15>/Ki_gate'
+       *  Product: '<S17>/Ki_gate'
+       *  Sum: '<S15>/Integrator_sum'
+       *  Sum: '<S17>/Integrator_sum'
+       *  Switch: '<S17>/Integrator_reset_switch'
+       *  UnitDelay: '<S15>/Integrator'
+       *  UnitDelay: '<S17>/Integrator'
        */
-      Controller_DSP_DW.Integrator_SYSTEM_ENABLE_d = 0U;
-      Controller_DSP_DW.Integrator_PREV_U_o = Iq_Ki * rtb_Sum1_idx_0;
+      if (Controller_DSP_B.fault_reset_d) {
+        Controller_DSP_DW.Integrator_DSTATE_l = 0.0F;
+        Controller_DSP_DW.Integrator_DSTATE_p = 0.0F;
+      } else {
+        Controller_DSP_DW.Integrator_DSTATE_l += Id_Ki * rtb_theta_m * (real32_T)
+          !rtb_sat_or;
+        Controller_DSP_DW.Integrator_DSTATE_p += Iq_Ki * rtb_Sum1_idx_0 *
+          (real32_T)!rtb_sat_or;
+      }
 
+      /* End of Switch: '<S15>/Integrator_reset_switch' */
       /* End of Outputs for SubSystem: '<S2>/PMSM_FOC' */
 
       /* Outputs for Function Call SubSystem: '<Root>/PWM' */
 
       /* Gain: '<S3>/Gain3' */
-      rtb_Gain3 = (uint16_T)(4000.0F * OutportBufferForDa);
+      rtb_Gain3 = (uint16_T)(4000.0F * rtb_modulation_limit);
 
       /* S-Function (c2802xpwm): '<S3>/ePWM' */
 
@@ -507,7 +556,7 @@ void isr_int1pie1_task_fcn(void)
       }
 
       /* Gain: '<S3>/GainDb' */
-      rtb_GainDc = 4000.0F * rtb_DTheta;
+      rtb_GainDc = 4000.0F * Db_safe_switch;
 
       /* S-Function (c2802xpwm): '<S3>/ePWM1' */
 
@@ -517,7 +566,7 @@ void isr_int1pie1_task_fcn(void)
       }
 
       /* Gain: '<S3>/GainDc' */
-      rtb_GainDc = 4000.0F * rtb_Sum1_idx_1;
+      rtb_GainDc = 4000.0F * Udc;
 
       /* S-Function (c2802xpwm): '<S3>/ePWM2' */
 
@@ -545,7 +594,7 @@ void isr_int1pie1_task_fcn(void)
       }
 
       /* DataStoreWrite: '<S3>/Data Store Write1' */
-      CPLDOut.GPOUT0 = fault;
+      CPLDOut.GPOUT0 = Controller_DSP_B.Start_c;
 
       /* user code (Update function Body for TID3) */
 
@@ -627,10 +676,10 @@ static void rate_monotonic_scheduler(void)
 void Controller_DSP_step0(void)        /* Sample time: [0.001s, 0.0s] */
 {
   int16_T y[15];
-  int16_T ii;
-  boolean_T rtb_active;
-  real32_T rtb_speed_error;
-  real32_T rtb_Ki_gate;
+  int16_T rtb_active_single;
+  real32_T rtb_Ki_h;
+  real32_T rtb_add_feedforward;
+  real32_T rtb_Iq_limit;
   boolean_T rtb_TmpSignalConversionAtSFunct[15];
 
   {                                    /* Sample time: [0.001s, 0.0s] */
@@ -640,60 +689,78 @@ void Controller_DSP_step0(void)        /* Sample time: [0.001s, 0.0s] */
   /* Constant: '<Root>/DSP_Start' */
   Controller_DSP_B.Start_c = Start;
 
-  /* Logic: '<S11>/active' incorporates:
+  /* DataTypeConversion: '<S11>/active_single' incorporates:
    *  Constant: '<Root>/DSP_ctrl_mode'
+   *  Logic: '<S11>/active'
    *  RelationalOperator: '<S11>/is_speed_mode'
    */
-  rtb_active = ((ctrl_mode == 1U) && Controller_DSP_B.Start_c);
+  rtb_active_single = ((ctrl_mode == 1U) && Controller_DSP_B.Start_c);
 
   /* Sum: '<S11>/speed_error' incorporates:
    *  Constant: '<Root>/DSP_speed_ref'
    *  UnitDelay: '<S2>/RPM_feedback_z1'
    */
-  rtb_speed_error = speed_ref - Controller_DSP_DW.RPM_feedback_z1_DSTATE;
+  rtb_Ki_h = speed_ref - Controller_DSP_DW.RPM_feedback_z1_DSTATE;
 
-  /* Product: '<S11>/Ki_gate' incorporates:
-   *  DataTypeConversion: '<S11>/active_single'
-   *  Gain: '<S11>/Ki'
-   */
-  rtb_Ki_gate = Speed_Ki * rtb_speed_error * (real32_T)rtb_active;
+  /* Constant: '<Root>/DSP_fault_reset' */
+  Controller_DSP_B.fault_reset_d = fault_reset;
 
-  /* Switch: '<S11>/mode_switch' incorporates:
-   *  DataTypeConversion: '<S11>/active_single'
-   */
-  if ((real32_T)rtb_active >= 0.5F) {
-    /* Sum: '<S11>/add_feedforward' incorporates:
-     *  Constant: '<Root>/DSP_Iq_ref'
-     *  DiscreteIntegrator: '<S11>/Integrator'
-     *  Gain: '<S11>/Kp'
-     *  Sum: '<S11>/PI_sum'
-     */
-    Controller_DSP_B.mode_switch = (Speed_Kp * rtb_speed_error +
-      Controller_DSP_DW.Integrator_DSTATE) + Iq_ref;
-
-    /* Saturate: '<S11>/Iq_limit' */
-    if (Controller_DSP_B.mode_switch > Speed_Iq_limit) {
-      /* Sum: '<S11>/add_feedforward' */
-      Controller_DSP_B.mode_switch = Speed_Iq_limit;
-    } else {
-      if (Controller_DSP_B.mode_switch < -Speed_Iq_limit) {
-        /* Sum: '<S11>/add_feedforward' */
-        Controller_DSP_B.mode_switch = -Speed_Iq_limit;
-      }
-    }
-
-    /* End of Saturate: '<S11>/Iq_limit' */
-  } else {
-    /* Sum: '<S11>/add_feedforward' incorporates:
-     *  Constant: '<Root>/DSP_Iq_ref'
-     */
-    Controller_DSP_B.mode_switch = Iq_ref;
+  /* DiscreteIntegrator: '<S11>/Integrator' */
+  if (Controller_DSP_B.fault_reset_d &&
+      (Controller_DSP_DW.Integrator_PrevResetState <= 0)) {
+    Controller_DSP_DW.Integrator_DSTATE = 0.0F;
   }
 
-  /* End of Switch: '<S11>/mode_switch' */
+  /* Sum: '<S11>/add_feedforward' incorporates:
+   *  Constant: '<Root>/DSP_Iq_ref'
+   *  DiscreteIntegrator: '<S11>/Integrator'
+   *  Gain: '<S11>/Kp'
+   *  Sum: '<S11>/PI_sum'
+   */
+  rtb_add_feedforward = (Speed_Kp * rtb_Ki_h +
+    Controller_DSP_DW.Integrator_DSTATE) + Iq_ref;
+
+  /* Saturate: '<S11>/Iq_limit' */
+  if (rtb_add_feedforward > Speed_Iq_limit) {
+    rtb_Iq_limit = Speed_Iq_limit;
+  } else if (rtb_add_feedforward < -Speed_Iq_limit) {
+    rtb_Iq_limit = -Speed_Iq_limit;
+  } else {
+    rtb_Iq_limit = rtb_add_feedforward;
+  }
+
+  /* End of Saturate: '<S11>/Iq_limit' */
+
+  /* Switch: '<S11>/open_loop_iq_switch' incorporates:
+   *  Constant: '<Root>/DSP_Iq_ref'
+   *  Constant: '<S11>/open_loop_iq_cmd'
+   *  Constant: '<S11>/open_loop_mode_sel'
+   *  Switch: '<S11>/mode_switch'
+   */
+  if ((real_T)open_loop_mode >= 0.5) {
+    Controller_DSP_B.open_loop_iq_switch = open_loop_iq_ref;
+  } else if (rtb_active_single >= 0.5F) {
+    /* Switch: '<S11>/mode_switch' */
+    Controller_DSP_B.open_loop_iq_switch = rtb_Iq_limit;
+  } else {
+    Controller_DSP_B.open_loop_iq_switch = Iq_ref;
+  }
+
+  /* End of Switch: '<S11>/open_loop_iq_switch' */
 
   /* Constant: '<Root>/DSP_Id_ref' */
   Controller_DSP_B.Id_ref_h = Id_ref;
+
+  /* Gain: '<S11>/Ki' */
+  rtb_Ki_h *= Speed_Ki;
+
+  /* Product: '<S11>/Ki_gate' incorporates:
+   *  Logic: '<S11>/Ki_aw_gate'
+   *  Logic: '<S11>/sat_not'
+   *  RelationalOperator: '<S11>/sat_detect'
+   */
+  rtb_Ki_h *= (real32_T)((rtb_active_single != 0) && (!(rtb_add_feedforward !=
+    rtb_Iq_limit)));
 
   /* S-Function (fcncallgen): '<Root>/Function-Call Generator' incorporates:
    *  SubSystem: '<Root>/Task_1ms_pre'
@@ -791,8 +858,9 @@ void Controller_DSP_step0(void)        /* Sample time: [0.001s, 0.0s] */
   rtb_TmpSignalConversionAtSFunct[14] = CPLDOut.GPOUT0;
 
   /* MATLAB Function: '<S28>/bit_concat_unary' */
-  for (ii = 0; ii < 15; ii++) {
-    y[ii] = (int16_T)rtb_TmpSignalConversionAtSFunct[ii];
+  for (rtb_active_single = 0; rtb_active_single < 15; rtb_active_single++) {
+    y[rtb_active_single] = (int16_T)
+      rtb_TmpSignalConversionAtSFunct[rtb_active_single];
   }
 
   CPLDOutBits = (uint16_T)y[13] << 1 | y[14] | (uint16_T)y[12] << 2 | (uint16_T)
@@ -829,28 +897,9 @@ void Controller_DSP_step0(void)        /* Sample time: [0.001s, 0.0s] */
     Controller_DSP_DW.RT_rpm_speed_Buffer[Controller_DSP_DW.RT_rpm_speed_semaphoreTaken];
 
   /* Update for DiscreteIntegrator: '<S11>/Integrator' */
-  Controller_DSP_DW.Integrator_DSTATE += 0.001F * rtb_Ki_gate;
-
-  /* Update absolute time */
-  /* The "clockTick0" counts the number of times the code of this task has
-   * been executed. The resolution of this integer timer is 0.001, which is the step size
-   * of the task. Size of "clockTick0" ensures timer will not overflow during the
-   * application lifespan selected.
-   */
-  Controller_DSP_M->Timing.clockTick0++;
-
-  {
-    /* Base rate updates double buffers of absolute time for
-       asynchronous task. Double buffers are used to ensure
-       data integrity when asynchronous task reads absolute
-       time.
-       -- rtmL2HLastBufWr is the buffer index that is written last.
-     */
-    boolean_T bufIdx = !Controller_DSP_M->Timing.rtmL2HLastBufWr;
-    Controller_DSP_M->Timing.rtmL2HDbBufClockTick[bufIdx] =
-      Controller_DSP_M->Timing.clockTick0;
-    Controller_DSP_M->Timing.rtmL2HLastBufWr = bufIdx;
-  }
+  Controller_DSP_DW.Integrator_DSTATE += 0.001F * rtb_Ki_h;
+  Controller_DSP_DW.Integrator_PrevResetState = (int16_T)
+    Controller_DSP_B.fault_reset_d;
 }
 
 /* Model step function for TID1 */
@@ -931,6 +980,8 @@ void Controller_DSP_initialize(void)
   AnalogChA = Controller_DSP_rtZMeas_t;
   CPLDOut = Controller_DSP_rtZCPLDOutput_t;
   CPLDIn = Controller_DSP_rtZCPLDInput_t;
+  Id_mon = 0.0F;
+  Iq_mon = 0.0F;
   AdcStart = 0U;
   AdcStop = 0U;
 
@@ -1862,7 +1913,7 @@ void Controller_DSP_initialize(void)
 
   config_ADC_SOC3 ();
 
-  /* Start for S-Function (c280xqep): '<S4>/eQEP1' */
+  /* Start for S-Function (c280xqep): '<S4>/eQEP2 ' */
   config_QEP_eQEP2(4095U, 0, 0, 0, 0, 0, 8, 32768, 119, 0);
 
   /* End of Start for SubSystem: '<Root>/ReadAnalogInputs' */
@@ -1899,67 +1950,12 @@ void Controller_DSP_initialize(void)
   /* System '<Root>' */
   AMER_init();
 
-  /* SystemInitialize for S-Function (c28xisr_c2000): '<Root>/C28x Hardware Interrupt' incorporates:
-   *  Chart: '<Root>/Scheduler'
-   */
-
-  /* SystemInitialize for Chart: '<Root>/Scheduler' */
-  /* System initialize for function-call system: '<Root>/Scheduler' */
-
-  /* Asynchronous task reads absolute time. Data (absolute time)
-     transfers from low priority task (base rate) to high priority
-     task (asynchronous rate). Double buffers are used to ensure
-     data integrity.
-     -- rtmL2HLastBufWr is the buffer index that is written last.
-   */
-  Controller_DSP_M->Timing.clockTick3 =
-    Controller_DSP_M->Timing.rtmL2HDbBufClockTick
-    [Controller_DSP_M->Timing.rtmL2HLastBufWr];
-
-  /* SystemInitialize for Function Call SubSystem: '<S2>/PMSM_FOC' */
-  /* InitializeConditions for DiscreteIntegrator: '<S15>/Integrator' */
-  Controller_DSP_DW.Integrator_PREV_U = 0.0F;
-
-  /* InitializeConditions for DiscreteIntegrator: '<S17>/Integrator' */
-  Controller_DSP_DW.Integrator_PREV_U_o = 0.0F;
-
-  /* End of SystemInitialize for SubSystem: '<S2>/PMSM_FOC' */
-
-  /* End of SystemInitialize for S-Function (c28xisr_c2000): '<Root>/C28x Hardware Interrupt' */
+  /* InitializeConditions for DiscreteIntegrator: '<S11>/Integrator' */
+  Controller_DSP_DW.Integrator_PrevResetState = 2;
 
   /* SystemInitialize for S-Function (fcncallgen): '<Root>/Function-Call Generator' incorporates:
    *  SubSystem: '<Root>/Task_1ms_pre'
    */
-
-  /* Enable for S-Function (c28xisr_c2000): '<Root>/C28x Hardware Interrupt' incorporates:
-   *  Chart: '<Root>/Scheduler'
-   */
-
-  /* Enable for Chart: '<Root>/Scheduler' */
-  /* Enable for function-call system: '<Root>/Scheduler' */
-
-  /* Asynchronous task reads absolute time. Data (absolute time)
-     transfers from low priority task (base rate) to high priority
-     task (asynchronous rate). Double buffers are used to ensure
-     data integrity.
-     -- rtmL2HLastBufWr is the buffer index that is written last.
-   */
-  Controller_DSP_M->Timing.clockTick3 =
-    Controller_DSP_M->Timing.rtmL2HDbBufClockTick
-    [Controller_DSP_M->Timing.rtmL2HLastBufWr];
-
-  /* Enable for Function Call SubSystem: '<S2>/PMSM_FOC' */
-  Controller_DSP_DW.PMSM_FOC_RESET_ELAPS_T = true;
-
-  /* Enable for DiscreteIntegrator: '<S15>/Integrator' */
-  Controller_DSP_DW.Integrator_SYSTEM_ENABLE = 1U;
-
-  /* Enable for DiscreteIntegrator: '<S17>/Integrator' */
-  Controller_DSP_DW.Integrator_SYSTEM_ENABLE_d = 1U;
-
-  /* End of Enable for SubSystem: '<S2>/PMSM_FOC' */
-
-  /* End of Enable for S-Function (c28xisr_c2000): '<Root>/C28x Hardware Interrupt' */
 }
 
 /* Model terminate function */

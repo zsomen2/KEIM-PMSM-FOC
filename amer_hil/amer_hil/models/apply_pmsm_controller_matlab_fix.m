@@ -1,441 +1,505 @@
-function apply_pmsm_controller_matlab_fix()
-%APPLY_PMSM_CONTROLLER_MATLAB_FIX Persist QEP module selection in the model.
-% This patch updates the Controller harness eQEP block to use eQEP2
-% at model level, so code generation stays consistent.
+function apply_pmsm_controller_matlab_fix(saveModel, runValidation)
+%APPLY_PMSM_CONTROLLER_MATLAB_FIX Apply the controller harness fixes in MATLAB.
+%
+% This helper is intended for R2018b-era scripted edits to the top-level
+% pmsm_control.slx model.
+
+if nargin < 1 || isempty(saveModel)
+    saveModel = true;
+end
+if nargin < 2 || isempty(runValidation)
+    runValidation = false;
+end
 
 scriptDir = fileparts(mfilename('fullpath'));
+projectRoot = fileparts(scriptDir);
 cd(scriptDir);
 
+addpath(projectRoot);
+addpath(fullfile(projectRoot, 'data'));
+addpath(fullfile(projectRoot, 'utilities'));
+addpath(fullfile(projectRoot, 'plugins'));
+
+rehash toolboxcache;
+if exist('sl_refresh_customizations', 'file') == 2
+    sl_refresh_customizations;
+elseif exist('Advisor.Manager.refresh_customizations', 'file') == 2
+    Advisor.Manager.refresh_customizations;
+end
+
+if exist('xilinxpath', 'file') == 2
+    xilinxpath;
+end
+
+evalin('base', 'pmsm_control_init;');
+load_system('pmsm_control');
+
+modelName = 'pmsm_control';
+mainSpeedPath = [modelName '/Controller/Speed Controller'];
+
+% Keep the PWM trigger aligned to the fast current loop.
+set_param([modelName '/PWM_it_Pulse'], 'SampleTime', 'Ts_current/2');
+set_param([modelName '/PWM_it_Pulse'], 'Period', 'PWM_it_period');
+patch_open_loop_iq_override(mainSpeedPath);
+
+controllerHarnessModel = patch_read_analog_inputs();
+controllerPath = [controllerHarnessModel '/Controller'];
+focPath = [controllerPath '/PMSM_FOC'];
+speedPath = [controllerPath '/Speed Controller'];
+gatePath = [focPath '/Gate Enable Fault Logic'];
+voltPath = [focPath '/Voltage Limit Anti-Windup'];
+svpwmPath = [focPath '/SVPWM Duty Calculation'];
+
+patch_voltage_limit(voltPath);
+patch_gate_enable_logic(gatePath, focPath, controllerHarnessModel);
+patch_current_pi([focPath '/Id PI Controller'], voltPath, modelName);
+patch_current_pi([focPath '/Iq PI Controller'], voltPath, modelName);
+patch_speed_controller(speedPath);
+patch_open_loop_iq_override(speedPath);
+patch_safe_duty_switches(focPath, svpwmPath);
+patch_hiterm_current_exports(controllerHarnessModel, controllerPath, focPath);
+
+set_param(controllerHarnessModel, 'SimulationCommand', 'update');
+
 try
-    setappdata(0, 'pmsm_diag_knobs', capture_diagnostic_knobs());
-    pmsm_control_init;
-    if isappdata(0, 'pmsm_diag_knobs')
-        restore_diagnostic_knobs(getappdata(0, 'pmsm_diag_knobs'));
-        rmappdata(0, 'pmsm_diag_knobs');
-    end
-    load_system('pmsm_control');
+    close_system(controllerHarnessModel, 0);
+catch
+end
 
-    Simulink.harness.open('pmsm_control/Controller', 'Controller_DSP');
-    hModel = bdroot(gcs);
-    assert(strcmp(hModel, 'Controller_DSP'), 'Controller harness did not open.');
+if saveModel
+    save_system(modelName);
+end
 
-    eqepBlk = 'Controller_DSP/ReadAnalogInputs/eQEP1';
-    assert(getSimulinkBlockHandle(eqepBlk) ~= -1, 'Missing block: %s', eqepBlk);
-
-    thetaSign = read_workspace_value('theta_sign', int8(1));
-    phaseSwapBC = logical(read_workspace_value('phase_swap_bc', false));
-    openLoopMode = logical(read_workspace_value('open_loop_mode', false));
-    openLoopIqRef = single(read_workspace_value('open_loop_iq_ref', single(5)));
-
-    set_eqep_module_to_2(eqepBlk);
-    set_eqep_position_limits(eqepBlk);
-    set_digital_input2_bank('Controller_DSP/Task_1ms_pre/Digital Input2');
-    set_sensor_and_udc_wiring('Controller_DSP/ReadAnalogInputs', phaseSwapBC);
-    set_theta_gain_sign('Controller_DSP/ReadAnalogInputs/GainTheta', thetaSign);
-    set_wrap_aware_theta_delta('Controller_DSP/ReadAnalogInputs');
-    set_rpm_average_filter('Controller_DSP/ReadAnalogInputs');
-    set_open_loop_runtime_defaults(openLoopMode, openLoopIqRef);
-
-    save_system(hModel);
-    save_system('pmsm_control');
-
-    if bdIsLoaded(hModel)
-        close_system(hModel, 0);
-    end
-    if bdIsLoaded('pmsm_control')
-        close_system('pmsm_control', 0);
-    end
-
-    disp('PMSM_CONTROLLER_MATLAB_FIX_OK');
-catch ME
-    cleanup_models({'Controller_DSP', 'pmsm_control'});
-    rethrow(ME);
+if runValidation
+    run_pmsm_control_sanity_check;
 end
 end
 
-function set_eqep_module_to_2(blockPath)
-dp = get_param(blockPath, 'DialogParameters');
-fn = fieldnames(dp);
-moduleIdx = find(contains(lower(fn), 'module'));
-assert(~isempty(moduleIdx), 'No module-like parameter found on %s.', blockPath);
+function harnessModel = patch_read_analog_inputs()
+% Apply theta polarity and optional B/C current channel swap diagnostics.
 
-done = false;
-for i = 1:numel(moduleIdx)
-    p = fn{moduleIdx(i)};
-    for v = {'eQEP2', 'EQEP2', '2'}
-        try
-            set_param(blockPath, p, v{1});
-            readback = get_param(blockPath, p);
-            if contains(lower(readback), '2')
-                done = true;
-                break;
+owner = 'pmsm_control/Controller';
+harnessName = 'Controller_DSP';
+
+try
+    Simulink.harness.open(owner, harnessName);
+catch
+    Simulink.harness.open(owner, 'Name', harnessName);
+end
+
+harnessModel = bdroot(gcs);
+readAnalogPath = [harnessModel '/ReadAnalogInputs'];
+
+if isempty(find_system(harnessModel, 'SearchDepth', 1, 'Name', 'ReadAnalogInputs'))
+    error('apply_pmsm_controller_matlab_fix:MissingBlock', ...
+        'No block called ''ReadAnalogInputs'' could be found under controller harness ''%s''.', ...
+        harnessModel);
+end
+
+% Make encoder polarity an actual runtime parameter instead of a dead init
+% variable. The generated code then multiplies the raw mechanical angle by
+% theta_sign before every downstream use (speed estimation + Park angle).
+gainThetaPath = [readAnalogPath '/GainTheta'];
+set_param(gainThetaPath, ...
+    'Gain', 'single(0.00153398078788564) * single(theta_sign)');
+
+% Optional B/C swap on the ADC channels. This keeps the complete current
+% processing path coherent because the swap happens before gain/offset/comp.
+ensure_block(readAnalogPath, 'phase_swap_sel', 'simulink/Sources/Constant', [ -300 10 -225 35 ]);
+ensure_block(readAnalogPath, 'ADC1_swap', 'simulink/Signal Routing/Switch', [ -110 -105 -55 -70 ]);
+ensure_block(readAnalogPath, 'ADC2_swap', 'simulink/Signal Routing/Switch', [ -110 -50 -55 -15 ]);
+
+set_param([readAnalogPath '/phase_swap_sel'], 'Value', 'double(phase_swap_bc)');
+set_param([readAnalogPath '/ADC1_swap'], 'Criteria', 'u2 >= Threshold');
+set_param([readAnalogPath '/ADC1_swap'], 'Threshold', '0.5');
+set_param([readAnalogPath '/ADC2_swap'], 'Criteria', 'u2 >= Threshold');
+set_param([readAnalogPath '/ADC2_swap'], 'Threshold', '0.5');
+
+try, delete_line(readAnalogPath, 'ADC1/1', 'Mux/2'); catch, end
+try, delete_line(readAnalogPath, 'ADC2/1', 'Mux/3'); catch, end
+
+connect_line(readAnalogPath, 'ADC1/1', 'ADC1_swap/1');
+connect_line(readAnalogPath, 'phase_swap_sel/1', 'ADC1_swap/2');
+connect_line(readAnalogPath, 'ADC2/1', 'ADC1_swap/3');
+connect_line(readAnalogPath, 'ADC2/1', 'ADC2_swap/1');
+connect_line(readAnalogPath, 'phase_swap_sel/1', 'ADC2_swap/2');
+connect_line(readAnalogPath, 'ADC1/1', 'ADC2_swap/3');
+connect_line(readAnalogPath, 'ADC1_swap/1', 'Mux/2');
+connect_line(readAnalogPath, 'ADC2_swap/1', 'Mux/3');
+end
+
+function patch_voltage_limit(voltPath)
+% Replace the dummy sat output with an actual saturation flag.
+
+ensure_block(voltPath, 'sat_vd', 'simulink/Logic and Bit Operations/Relational Operator', [220 60 300 95]);
+ensure_block(voltPath, 'sat_vq', 'simulink/Logic and Bit Operations/Relational Operator', [220 130 300 165]);
+ensure_block(voltPath, 'sat_or', 'simulink/Logic and Bit Operations/Logical Operator', [330 90 385 135]);
+
+set_param([voltPath '/sat_vd'], 'Operator', '~=');
+set_param([voltPath '/sat_vq'], 'Operator', '~=');
+set_param([voltPath '/sat_or'], 'Operator', 'OR');
+set_param([voltPath '/sat_or'], 'Inputs', '2');
+
+try, delete_line(voltPath, 'Vd_raw/1', 'sat_vd/1'); catch, end
+try, delete_line(voltPath, 'Limit Vd/1', 'sat_vd/2'); catch, end
+try, delete_line(voltPath, 'Vq_raw/1', 'sat_vq/1'); catch, end
+try, delete_line(voltPath, 'Limit Vq/1', 'sat_vq/2'); catch, end
+try, delete_line(voltPath, 'sat_vd/1', 'sat_or/1'); catch, end
+try, delete_line(voltPath, 'sat_vq/1', 'sat_or/2'); catch, end
+try, delete_line(voltPath, 'sat_false/1', 'sat/1'); catch, end
+
+connect_line(voltPath, 'Vd_raw/1', 'sat_vd/1');
+connect_line(voltPath, 'Limit Vd/1', 'sat_vd/2');
+connect_line(voltPath, 'Vq_raw/1', 'sat_vq/1');
+connect_line(voltPath, 'Limit Vq/1', 'sat_vq/2');
+connect_line(voltPath, 'sat_vd/1', 'sat_or/1');
+connect_line(voltPath, 'sat_vq/1', 'sat_or/2');
+connect_line(voltPath, 'sat_or/1', 'sat/1');
+end
+
+function patch_gate_enable_logic(gatePath, focPath, modelName)
+% Add a latched fault state with I_limit and status awareness.
+
+ensure_block(gatePath, 'status', 'simulink/Sources/In1', [25 25 55 39]);
+ensure_block(gatePath, 'Iabc', 'simulink/Sources/In1', [25 70 55 84]);
+try, delete_block([gatePath '/IabsMax']); catch, end
+ensure_block(gatePath, 'Iabc_split', 'simulink/Signal Routing/Demux', [95 55 125 120]);
+ensure_block(gatePath, 'Iabs_a', 'simulink/Math Operations/Abs', [160 35 200 65]);
+ensure_block(gatePath, 'Iabs_b', 'simulink/Math Operations/Abs', [160 85 200 115]);
+ensure_block(gatePath, 'Iabs_c', 'simulink/Math Operations/Abs', [160 135 200 165]);
+ensure_block(gatePath, 'Imax_ab', 'simulink/Math Operations/MinMax', [240 60 290 100]);
+ensure_block(gatePath, 'Imax_abc', 'simulink/Math Operations/MinMax', [320 85 370 125]);
+ensure_block(gatePath, 'current_limit', 'simulink/Sources/Constant', [180 30 230 50]);
+ensure_block(gatePath, 'status_zero', 'simulink/Sources/Constant', [180 120 230 140]);
+ensure_block(gatePath, 'current_fault', 'simulink/Logic and Bit Operations/Relational Operator', [245 40 305 75]);
+ensure_block(gatePath, 'status_fault', 'simulink/Logic and Bit Operations/Relational Operator', [245 115 305 150]);
+ensure_block(gatePath, 'fault_state', 'simulink/Discrete/Unit Delay', [360 90 410 130]);
+ensure_block(gatePath, 'fault_reset_switch', 'simulink/Signal Routing/Switch', [300 150 350 210]);
+ensure_block(gatePath, 'fault_zero', 'simulink/Sources/Constant', [250 175 285 195]);
+
+set_param([gatePath '/Iabc_split'], 'Outputs', '3');
+set_param([gatePath '/Imax_ab'], 'Function', 'max');
+set_param([gatePath '/Imax_ab'], 'Inputs', '2');
+set_param([gatePath '/Imax_abc'], 'Function', 'max');
+set_param([gatePath '/Imax_abc'], 'Inputs', '2');
+set_param([gatePath '/current_fault'], 'Operator', '>=');
+set_param([gatePath '/status_fault'], 'Operator', '~=');
+set_param([gatePath '/fault_state'], 'InitialCondition', 'false');
+set_param([gatePath '/fault_reset_switch'], 'Criteria', 'u2 >= Threshold');
+set_param([gatePath '/fault_reset_switch'], 'Threshold', '0.5');
+set_param([gatePath '/fault_zero'], 'Value', 'false');
+set_param([gatePath '/current_limit'], 'Value', 'I_limit');
+set_param([gatePath '/status_zero'], 'Value', '0');
+set_param([gatePath '/status'], 'Port', '5');
+set_param([gatePath '/Iabc'], 'Port', '6');
+
+% Inputs 1 and 2 already exist.
+set_param([gatePath '/fault_or'], 'Operator', 'OR');
+set_param([gatePath '/fault_or'], 'Inputs', '5');
+set_param([gatePath '/not_fault'], 'Operator', 'NOT');
+set_param([gatePath '/gate_and'], 'Operator', 'AND');
+set_param([gatePath '/gate_and'], 'Inputs', '2');
+
+% Rewire the gate logic.
+try, delete_line(gatePath, 'sensor_fault/1', 'fault_or/1'); catch, end
+try, delete_line(gatePath, 'Udc_low/1', 'fault_or/2'); catch, end
+try, delete_line(gatePath, 'fault_or/1', 'not_fault/1'); catch, end
+try, delete_line(gatePath, 'fault_or/1', 'fault/1'); catch, end
+try, delete_line(gatePath, 'fault_reset/1', 'fault/1'); catch, end
+try, delete_line(gatePath, 'Start/1', 'gate_and/1'); catch, end
+try, delete_line(gatePath, 'not_fault/1', 'gate_and/2'); catch, end
+
+connect_line(gatePath, 'sensor_fault/1', 'fault_or/1');
+connect_line(gatePath, 'Udc_low/1', 'fault_or/2');
+connect_line(gatePath, 'status_fault/1', 'fault_or/3');
+connect_line(gatePath, 'current_fault/1', 'fault_or/4');
+connect_line(gatePath, 'fault_state/1', 'fault_or/5');
+connect_line(gatePath, 'fault_or/1', 'fault_reset_switch/3');
+connect_line(gatePath, 'fault_zero/1', 'fault_reset_switch/1');
+connect_line(gatePath, 'fault_reset/1', 'fault_reset_switch/2');
+connect_line(gatePath, 'fault_reset_switch/1', 'fault_state/1');
+connect_line(gatePath, 'fault_state/1', 'fault/1');
+connect_line(gatePath, 'fault_state/1', 'not_fault/1');
+connect_line(gatePath, 'Start/1', 'gate_and/1');
+connect_line(gatePath, 'not_fault/1', 'gate_and/2');
+
+% Route top-level signals into the new inputs.
+connect_line(focPath, 'status/1', 'Gate Enable Fault Logic/5');
+connect_line(focPath, 'Iabc/1', 'Gate Enable Fault Logic/6');
+
+% Current fault compare uses the exported phase current limit.
+connect_line(gatePath, 'Iabc/1', 'Iabc_split/1');
+connect_line(gatePath, 'Iabc_split/1', 'Iabs_a/1');
+connect_line(gatePath, 'Iabc_split/2', 'Iabs_b/1');
+connect_line(gatePath, 'Iabc_split/3', 'Iabs_c/1');
+connect_line(gatePath, 'Iabs_a/1', 'Imax_ab/1');
+connect_line(gatePath, 'Iabs_b/1', 'Imax_ab/2');
+connect_line(gatePath, 'Imax_ab/1', 'Imax_abc/1');
+connect_line(gatePath, 'Iabs_c/1', 'Imax_abc/2');
+connect_line(gatePath, 'Imax_abc/1', 'current_fault/1');
+connect_line(gatePath, 'current_limit/1', 'current_fault/2');
+connect_line(gatePath, 'status/1', 'status_fault/1');
+connect_line(gatePath, 'status_zero/1', 'status_fault/2');
+end
+
+function patch_current_pi(piPath, voltPath, modelName)
+% Convert the current PI to a fixed-step discrete integrator inside the ISR.
+
+ensure_block(piPath, 'sat', 'simulink/Sources/In1', [25 145 55 159]);
+ensure_block(piPath, 'fault_reset', 'simulink/Sources/In1', [25 185 55 199]);
+ensure_block(piPath, 'sat_not', 'simulink/Logic and Bit Operations/Logical Operator', [95 135 135 170]);
+ensure_block(piPath, 'Ki_gate', 'simulink/Math Operations/Product', [175 95 220 135]);
+ensure_block(piPath, 'Integrator_sum', 'simulink/Math Operations/Sum', [255 88 295 122]);
+ensure_block(piPath, 'Integrator_zero', 'simulink/Sources/Constant', [250 165 295 185]);
+ensure_block(piPath, 'Integrator_reset_switch', 'simulink/Signal Routing/Switch', [330 110 390 170]);
+
+set_param([piPath '/sat_not'], 'Operator', 'NOT');
+set_param([piPath '/Ki_gate'], 'Inputs', '**');
+set_param([piPath '/sat'], 'Port', '3');
+set_param([piPath '/fault_reset'], 'Port', '4');
+set_param([piPath '/Integrator_sum'], 'Inputs', '++');
+set_param([piPath '/Integrator_zero'], 'Value', 'single(0)');
+set_param([piPath '/Integrator_reset_switch'], 'Criteria', 'u2 >= Threshold');
+set_param([piPath '/Integrator_reset_switch'], 'Threshold', '0.5');
+
+safe_delete_if_exists(piPath, 'Integrator');
+add_block('simulink/Discrete/Unit Delay', [piPath '/Integrator'], ...
+    'Position', [430 90 480 120]);
+set_param([piPath '/Integrator'], ...
+    'X0', 'single(0)', ...
+    'SampleTime', '-1');
+
+try, delete_line(piPath, 'Ki/1', 'Integrator/1'); catch, end
+try, delete_line(piPath, 'Ki_gate/1', 'Integrator/1'); catch, end
+try, delete_line(piPath, 'fault_reset/1', 'Integrator/2'); catch, end
+try, delete_line(piPath, 'Integrator/1', 'P_plus_I/2'); catch, end
+connect_line(piPath, 'sat/1', 'sat_not/1');
+connect_line(piPath, 'Ki/1', 'Ki_gate/1');
+connect_line(piPath, 'sat_not/1', 'Ki_gate/2');
+connect_line(piPath, 'Integrator/1', 'Integrator_sum/1');
+connect_line(piPath, 'Ki_gate/1', 'Integrator_sum/2');
+connect_line(piPath, 'Integrator_zero/1', 'Integrator_reset_switch/1');
+connect_line(piPath, 'fault_reset/1', 'Integrator_reset_switch/2');
+connect_line(piPath, 'Integrator_sum/1', 'Integrator_reset_switch/3');
+connect_line(piPath, 'Integrator_reset_switch/1', 'Integrator/1');
+connect_line(piPath, 'Integrator/1', 'P_plus_I/2');
+
+% Route the saturation and reset signals from the parent FOC subsystem.
+focPath = fileparts(piPath);
+connect_line(focPath, 'Voltage Limit Anti-Windup/3', [get_param(piPath, 'Name') '/3']);
+connect_line(focPath, 'fault_reset/1', [get_param(piPath, 'Name') '/4']);
+end
+
+function patch_speed_controller(speedPath)
+% Add an anti-windup gate to the speed PI and wire reset to the integrator.
+
+set_param([speedPath '/Integrator'], 'ExternalReset', 'rising');
+set_param([speedPath '/Integrator'], 'LimitOutput', 'off');
+set_param([speedPath '/Iq_limit'], 'UpperLimit', 'Speed_Iq_limit');
+set_param([speedPath '/Iq_limit'], 'LowerLimit', '-Speed_Iq_limit');
+
+ensure_block(speedPath, 'sat_detect', 'simulink/Logic and Bit Operations/Relational Operator', [460 165 530 205]);
+ensure_block(speedPath, 'sat_not', 'simulink/Logic and Bit Operations/Logical Operator', [540 160 585 200]);
+ensure_block(speedPath, 'Ki_aw_gate', 'simulink/Logic and Bit Operations/Logical Operator', [610 155 660 205]);
+
+set_param([speedPath '/sat_detect'], 'Operator', '~=');
+set_param([speedPath '/sat_not'], 'Operator', 'NOT');
+set_param([speedPath '/Ki_aw_gate'], 'Operator', 'AND');
+set_param([speedPath '/Ki_aw_gate'], 'Inputs', '2');
+
+try, delete_line(speedPath, 'add_feedforward/1', 'sat_detect/1'); catch, end
+try, delete_line(speedPath, 'Iq_limit/1', 'sat_detect/2'); catch, end
+try, delete_line(speedPath, 'active_single/1', 'Ki_gate/2'); catch, end
+connect_line(speedPath, 'add_feedforward/1', 'sat_detect/1');
+connect_line(speedPath, 'Iq_limit/1', 'sat_detect/2');
+connect_line(speedPath, 'sat_detect/1', 'sat_not/1');
+connect_line(speedPath, 'active_single/1', 'Ki_aw_gate/1');
+connect_line(speedPath, 'sat_not/1', 'Ki_aw_gate/2');
+connect_line(speedPath, 'Ki_aw_gate/1', 'Ki_gate/2');
+connect_line(speedPath, 'fault_reset/1', 'Integrator/2');
+end
+
+function patch_open_loop_iq_override(speedPath)
+% Allow forcing a fixed q-axis current command from HiTerm/CCS.
+
+ensure_block(speedPath, 'open_loop_mode_sel', 'simulink/Sources/Constant', [720 35 800 55]);
+ensure_block(speedPath, 'open_loop_iq_cmd', 'simulink/Sources/Constant', [720 90 800 110]);
+ensure_block(speedPath, 'open_loop_iq_switch', 'simulink/Signal Routing/Switch', [860 55 920 115]);
+
+set_param([speedPath '/open_loop_mode_sel'], 'Value', 'double(open_loop_mode)');
+set_param([speedPath '/open_loop_iq_cmd'], 'Value', 'single(open_loop_iq_ref)');
+set_param([speedPath '/open_loop_iq_switch'], 'Criteria', 'u2 >= Threshold');
+set_param([speedPath '/open_loop_iq_switch'], 'Threshold', '0.5');
+
+modeSwitchPath = [speedPath '/mode_switch'];
+try
+    delete_line(speedPath, 'mode_switch/1', 'Iq_cmd/1');
+catch
+end
+
+connect_line(speedPath, 'mode_switch/1', 'open_loop_iq_switch/3');
+connect_line(speedPath, 'open_loop_mode_sel/1', 'open_loop_iq_switch/2');
+connect_line(speedPath, 'open_loop_iq_cmd/1', 'open_loop_iq_switch/1');
+connect_line(speedPath, 'open_loop_iq_switch/1', 'Iq_cmd/1');
+end
+
+function patch_safe_duty_switches(focPath, svpwmPath)
+% Force neutral duty on gate-off at the FOC output.
+
+ensure_block(focPath, 'D_safe', 'simulink/Sources/Constant', [770 70 820 100]);
+ensure_block(focPath, 'Da_safe_switch', 'simulink/Signal Routing/Switch', [860 60 920 100]);
+ensure_block(focPath, 'Db_safe_switch', 'simulink/Signal Routing/Switch', [860 110 920 150]);
+ensure_block(focPath, 'Dc_safe_switch', 'simulink/Signal Routing/Switch', [860 160 920 200]);
+
+set_param([focPath '/D_safe'], 'Value', 'D_safe');
+set_param([focPath '/Da_safe_switch'], 'Criteria', 'u2 >= Threshold');
+set_param([focPath '/Da_safe_switch'], 'Threshold', '0.5');
+set_param([focPath '/Db_safe_switch'], 'Criteria', 'u2 >= Threshold');
+set_param([focPath '/Db_safe_switch'], 'Threshold', '0.5');
+set_param([focPath '/Dc_safe_switch'], 'Criteria', 'u2 >= Threshold');
+set_param([focPath '/Dc_safe_switch'], 'Threshold', '0.5');
+
+% Re-route the computed duties through the safe-duty switches.
+try, delete_line(focPath, 'SVPWM Duty Calculation/1', 'Da/1'); catch, end
+try, delete_line(focPath, 'SVPWM Duty Calculation/2', 'Db/1'); catch, end
+try, delete_line(focPath, 'SVPWM Duty Calculation/3', 'Dc/1'); catch, end
+connect_line(focPath, 'SVPWM Duty Calculation/1', 'Da_safe_switch/1');
+connect_line(focPath, 'Gate Enable Fault Logic/1', 'Da_safe_switch/2');
+connect_line(focPath, 'D_safe/1', 'Da_safe_switch/3');
+connect_line(focPath, 'SVPWM Duty Calculation/2', 'Db_safe_switch/1');
+connect_line(focPath, 'Gate Enable Fault Logic/1', 'Db_safe_switch/2');
+connect_line(focPath, 'D_safe/1', 'Db_safe_switch/3');
+connect_line(focPath, 'SVPWM Duty Calculation/3', 'Dc_safe_switch/1');
+connect_line(focPath, 'Gate Enable Fault Logic/1', 'Dc_safe_switch/2');
+connect_line(focPath, 'D_safe/1', 'Dc_safe_switch/3');
+connect_line(focPath, 'Da_safe_switch/1', 'Da/1');
+connect_line(focPath, 'Db_safe_switch/1', 'Db/1');
+connect_line(focPath, 'Dc_safe_switch/1', 'Dc/1');
+end
+
+function patch_hiterm_current_exports(harnessModel, controllerPath, focPath)
+% Export the controller-computed d/q currents as globals for HiTerm.
+
+parkPath = [focPath '/Park Transform'];
+
+safe_delete_if_exists(harnessModel, 'IdMonitorMemory');
+safe_delete_if_exists(harnessModel, 'IqMonitorMemory');
+safe_delete_if_exists(harnessModel, 'IdMonStore');
+safe_delete_if_exists(harnessModel, 'IqMonStore');
+safe_delete_if_exists(controllerPath, 'IdMonStore');
+safe_delete_if_exists(controllerPath, 'IqMonStore');
+safe_delete_if_exists(focPath, 'IdMonStore');
+safe_delete_if_exists(focPath, 'IqMonStore');
+safe_delete_if_exists(focPath, 'WriteIdMonitor');
+safe_delete_if_exists(focPath, 'WriteIqMonitor');
+safe_delete_if_exists(parkPath, 'WriteIdMon');
+safe_delete_if_exists(parkPath, 'WriteIqMon');
+
+ensure_block(focPath, 'IdMonStore', 'simulink/Signal Routing/Data Store Memory', [820 20 900 50]);
+ensure_block(focPath, 'IqMonStore', 'simulink/Signal Routing/Data Store Memory', [820 60 900 90]);
+ensure_block(parkPath, 'WriteIdMon', 'simulink/Signal Routing/Data Store Write', [355 60 455 90]);
+ensure_block(parkPath, 'WriteIqMon', 'simulink/Signal Routing/Data Store Write', [355 110 455 140]);
+
+set_param([focPath '/IdMonStore'], ...
+    'DataStoreName', 'Id_mon', ...
+    'InitialValue', 'single(0)', ...
+    'RTWStateStorageClass', 'ExportedGlobal', ...
+    'OutDataTypeStr', 'single');
+set_param([focPath '/IqMonStore'], ...
+    'DataStoreName', 'Iq_mon', ...
+    'InitialValue', 'single(0)', ...
+    'RTWStateStorageClass', 'ExportedGlobal', ...
+    'OutDataTypeStr', 'single');
+
+set_param([parkPath '/WriteIdMon'], 'DataStoreName', 'Id_mon');
+set_param([parkPath '/WriteIqMon'], 'DataStoreName', 'Iq_mon');
+
+connect_line(parkPath, 'Id_sum/1', 'WriteIdMon/1');
+connect_line(parkPath, 'Iq_sum/1', 'WriteIqMon/1');
+end
+
+function ensure_block(parentPath, blockName, libPath, position)
+fullPath = [parentPath '/' blockName];
+if isempty(find_system(parentPath, 'SearchDepth', 1, 'Name', blockName))
+    add_block(libPath, fullPath, 'Position', position);
+else
+    set_param(fullPath, 'Position', position);
+end
+end
+
+function connect_line(parentPath, src, dst)
+try
+    delete_line(parentPath, src, dst);
+catch
+end
+
+dstPortHandle = local_port_handle(parentPath, dst, 'Inport');
+try
+    dstLineHandle = get_param(dstPortHandle, 'Line');
+    if dstLineHandle ~= -1
+        delete_line(dstLineHandle);
+    end
+catch
+end
+
+try
+    srcPortHandle = local_port_handle(parentPath, src, 'Outport');
+    srcLineHandle = get_param(srcPortHandle, 'Line');
+    if srcLineHandle ~= -1 && dstPortHandle ~= -1
+        dstPortHandles = get_param(srcLineHandle, 'DstPortHandle');
+        if ~iscell(dstPortHandles)
+            dstPortHandles = num2cell(dstPortHandles);
+        end
+        for k = 1:numel(dstPortHandles)
+            if isequal(dstPortHandles{k}, dstPortHandle)
+                return;
             end
-        catch
-            % try next candidate
         end
     end
-    if done
-        break;
-    end
-end
-
-assert(done, 'Failed to set eQEP module to eQEP2 on block %s.', blockPath);
-end
-
-function set_digital_input2_bank(blockPath)
-assert(getSimulinkBlockHandle(blockPath) ~= -1, 'Missing block: %s', blockPath);
-set_param(blockPath, 'GPIO_Number', 'GPIO40~GPIO44');
-set_param(blockPath, 'GPIO_Bit0', 'on');
-set_param(blockPath, 'GPIO_Bit1', 'on');
-set_param(blockPath, 'GPIO_Bit2', 'on');
-set_param(blockPath, 'GPIO_Bit3', 'on');
-set_param(blockPath, 'GPIO_Bit4', 'off');
-set_param(blockPath, 'GPIO_Bit5', 'off');
-set_param(blockPath, 'GPIO_Bit6', 'off');
-set_param(blockPath, 'GPIO_Bit7', 'off');
-end
-
-function set_sensor_and_udc_wiring(parentPath, swapPhaseBC)
-demuxBlk = [parentPath '/Demux'];
-iabcMuxBlk = [parentPath '/IabcMux'];
-sensorBusBlk = [parentPath '/SensorBus'];
-udcAdcBlk = [parentPath '/UdcADC'];
-udcGainBlk = [parentPath '/UdcGain'];
-
-assert(getSimulinkBlockHandle(demuxBlk) ~= -1, 'Missing block: %s', demuxBlk);
-assert(getSimulinkBlockHandle(iabcMuxBlk) ~= -1, 'Missing block: %s', iabcMuxBlk);
-assert(getSimulinkBlockHandle(sensorBusBlk) ~= -1, 'Missing block: %s', sensorBusBlk);
-
-UdcFS = evalin('caller', 'UdcFS');
-udcExpr = sprintf('single(%g/4096)', UdcFS);
-demuxPos = get_param(demuxBlk, 'Position');
-
-obsoleteBlocks = {
-    'Vout0'
-    'zero_current'
-    'neg_ia'
-    'UdcConst'
-    'UdcADC'
-    'UdcGain'
-    };
-for i = 1:numel(obsoleteBlocks)
-    safe_delete_block([parentPath '/' obsoleteBlocks{i}]);
-end
-
-add_block([parentPath '/ADC2'], udcAdcBlk, ...
-    'Position', [demuxPos(1) - 290, demuxPos(2) - 50, demuxPos(1) - 230, demuxPos(2) - 10]);
-set_param(udcAdcBlk, 'useSOC1', 'SOC3');
-set_param(udcAdcBlk, 'conv1', 'ADCINA6');
-set_param(udcAdcBlk, 'ADCModule', '1');
-set_param(udcAdcBlk, 'interruptSel', 'ADCINT2');
-set_param(udcAdcBlk, 'postInterrupt', 'off');
-set_param(udcAdcBlk, 'Ts', '-1');
-set_param(udcAdcBlk, 'samplingMode', 'Single sample mode');
-set_param(udcAdcBlk, 'ADCResolution', '12-bit (Single-ended input)');
-
-add_block('simulink/Math Operations/Gain', udcGainBlk, ...
-    'Gain', udcExpr, ...
-    'OutDataTypeStr', 'single', ...
-    'Position', [demuxPos(1) - 200, demuxPos(2) - 50, demuxPos(1) - 140, demuxPos(2) - 20]);
-
-demuxPh = get_param(demuxBlk, 'PortHandles');
-iabcMuxPh = get_param(iabcMuxBlk, 'PortHandles');
-sensorBusPh = get_param(sensorBusBlk, 'PortHandles');
-udcAdcPh = get_param(udcAdcBlk, 'PortHandles');
-udcGainPh = get_param(udcGainBlk, 'PortHandles');
-
-assert(numel(sensorBusPh.Inport) >= 10, 'SensorBus does not expose enough inputs.');
-
-safe_add_line(parentPath, demuxPh.Outport(1), sensorBusPh.Inport(1));
-safe_add_line(parentPath, demuxPh.Outport(1), iabcMuxPh.Inport(1));
-if swapPhaseBC
-    safe_add_line(parentPath, demuxPh.Outport(3), sensorBusPh.Inport(2));
-    safe_add_line(parentPath, demuxPh.Outport(3), iabcMuxPh.Inport(2));
-    safe_add_line(parentPath, demuxPh.Outport(2), sensorBusPh.Inport(3));
-    safe_add_line(parentPath, demuxPh.Outport(2), iabcMuxPh.Inport(3));
-else
-    safe_add_line(parentPath, demuxPh.Outport(2), sensorBusPh.Inport(2));
-    safe_add_line(parentPath, demuxPh.Outport(2), iabcMuxPh.Inport(2));
-    safe_add_line(parentPath, demuxPh.Outport(3), sensorBusPh.Inport(3));
-    safe_add_line(parentPath, demuxPh.Outport(3), iabcMuxPh.Inport(3));
-end
-safe_add_line(parentPath, udcAdcPh.Outport(1), udcGainPh.Inport(1));
-safe_add_line(parentPath, udcGainPh.Outport(1), sensorBusPh.Inport(4));
-
-sensorLines = get_sensor_lines(sensorBusPh);
-set_line_name(sensorLines{1}, 'Ia');
-set_line_name(sensorLines{2}, 'Ib');
-set_line_name(sensorLines{3}, 'Ic');
-set_line_name(sensorLines{4}, 'Udc');
-end
-
-function set_eqep_position_limits(blockPath)
-set_param(blockPath, 'pcMaximumvalue', '4095');
-set_param(blockPath, 'pcInitialvalue', '0');
-end
-
-function diagKnobs = capture_diagnostic_knobs()
-diagKnobs = struct();
-for name = {'theta_sign', 'phase_swap_bc', 'open_loop_mode', 'open_loop_iq_ref'}
-    if evalin('caller', sprintf('exist(''%s'', ''var'')', name{1}))
-        diagKnobs.(name{1}) = evalin('caller', name{1});
-    end
-end
-end
-
-function restore_diagnostic_knobs(diagKnobs)
-fields = fieldnames(diagKnobs);
-for k = 1:numel(fields)
-    assignin('caller', fields{k}, diagKnobs.(fields{k}));
-end
-end
-
-function set_theta_gain_sign(blockPath, thetaSign)
-assert(isnumeric(thetaSign) && isscalar(thetaSign), 'theta_sign must be numeric scalar.');
-thetaSign = double(thetaSign);
-assert(thetaSign == 1 || thetaSign == -1, 'theta_sign must be +1 or -1.');
-
-% The mechanical angle gain is fixed by the encoder resolution.
-% Only the sign is switched for polarity diagnostics.
-gainValue = thetaSign * (2*pi/4096);
-set_param(blockPath, 'Gain', sprintf('single(%0.15g)', gainValue));
-end
-
-function set_wrap_aware_theta_delta(parentPath)
-dthetaBlk = [parentPath '/DTheta'];
-thetaPrevBlk = [parentPath '/ThetaPrev'];
-thetaGainBlk = [parentPath '/GainTheta'];
-gainWBlk = [parentPath '/GainW'];
-
-assert(getSimulinkBlockHandle(dthetaBlk) ~= -1, 'Missing block: %s', dthetaBlk);
-assert(getSimulinkBlockHandle(thetaPrevBlk) ~= -1, 'Missing block: %s', thetaPrevBlk);
-assert(getSimulinkBlockHandle(thetaGainBlk) ~= -1, 'Missing block: %s', thetaGainBlk);
-assert(getSimulinkBlockHandle(gainWBlk) ~= -1, 'Missing block: %s', gainWBlk);
-
-pos = get_param(dthetaBlk, 'Position');
-dthetaPh = get_param(dthetaBlk, 'PortHandles');
-gainWPh = get_param(gainWBlk, 'PortHandles');
-
-obsoleteWrapBlocks = {
-    'WrapPi'
-    'WrapNegPi'
-    'WrapTwoPi'
-    'WrapGTpi'
-    'WrapLTnegpi'
-    'WrapMinus2Pi'
-    'WrapPlus2Pi'
-    'WrapHighSwitch'
-    'WrapLowSwitch'
-    'WrapAddPi'
-    'WrapMod'
-    'WrapSubPi'
-    'WrapThetaDeltaFcn'
-    };
-for i = 1:numel(obsoleteWrapBlocks)
-    safe_delete_block([parentPath '/' obsoleteWrapBlocks{i}]);
-end
-
-oldDThetaLine = get_param(dthetaPh.Outport(1), 'Line');
-if oldDThetaLine ~= -1
-    delete_line(oldDThetaLine);
-end
-safe_clear_port(gainWPh.Inport(1));
-
-wrapFcnBlk = [parentPath '/WrapThetaDeltaFcn'];
-add_block('simulink/User-Defined Functions/Fcn', wrapFcnBlk, ...
-    'Expr', 'u - 2*pi*floor((u+pi)/(2*pi))', ...
-    'Position', [pos(1) + 180, pos(2) - 25, pos(1) + 340, pos(2) + 10]);
-
-wrapFcnPh = get_param(wrapFcnBlk, 'PortHandles');
-
-safe_add_line(parentPath, dthetaPh.Outport(1), wrapFcnPh.Inport(1));
-safe_add_line(parentPath, wrapFcnPh.Outport(1), gainWPh.Inport(1));
-end
-
-function set_rpm_average_filter(parentPath)
-gainRpmBlk = [parentPath '/GainRPM'];
-sensorBusBlk = [parentPath '/SensorBus'];
-
-assert(getSimulinkBlockHandle(gainRpmBlk) ~= -1, 'Missing block: %s', gainRpmBlk);
-assert(getSimulinkBlockHandle(sensorBusBlk) ~= -1, 'Missing block: %s', sensorBusBlk);
-
-gainRpmPh = get_param(gainRpmBlk, 'PortHandles');
-sensorBusPh = get_param(sensorBusBlk, 'PortHandles');
-assert(numel(sensorBusPh.Inport) >= 8, 'SensorBus does not expose enough inputs.');
-dstPort = sensorBusPh.Inport(8);
-
-if isempty(dstPort) || dstPort == -1
-    error('GainRPM has no downstream destination to rewrite.');
-end
-
-safe_delete_block([parentPath '/RpmAvgDiff']);
-safe_delete_block([parentPath '/RpmAvgGain']);
-safe_delete_block([parentPath '/RpmAvgSum']);
-safe_delete_block([parentPath '/RpmAvgDelay']);
-safe_delete_line(parentPath, gainRpmPh.Outport(1), dstPort);
-
-gainPos = get_param(gainRpmBlk, 'Position');
-
-diffBlk = [parentPath '/RpmAvgDiff'];
-gainBlk = [parentPath '/RpmAvgGain'];
-sumBlk = [parentPath '/RpmAvgSum'];
-delayBlk = [parentPath '/RpmAvgDelay'];
-
-add_block('simulink/Math Operations/Sum', diffBlk, ...
-    'Inputs', '+-', ...
-    'Position', [gainPos(1) + 90, gainPos(2) - 15, gainPos(1) + 140, gainPos(2) + 15]);
-add_block('simulink/Math Operations/Gain', gainBlk, ...
-    'Gain', '0.125', ...
-    'Position', [gainPos(1) + 180, gainPos(2) - 15, gainPos(1) + 230, gainPos(2) + 15]);
-add_block('simulink/Math Operations/Sum', sumBlk, ...
-    'Inputs', '++', ...
-    'Position', [gainPos(1) + 270, gainPos(2) - 15, gainPos(1) + 320, gainPos(2) + 15]);
-add_block('simulink/Discrete/Unit Delay', delayBlk, ...
-    'InitialCondition', '0', ...
-    'Position', [gainPos(1) + 360, gainPos(2) - 15, gainPos(1) + 410, gainPos(2) + 15]);
-
-diffPh = get_param(diffBlk, 'PortHandles');
-gainPh = get_param(gainBlk, 'PortHandles');
-sumPh = get_param(sumBlk, 'PortHandles');
-delayPh = get_param(delayBlk, 'PortHandles');
-
-safe_add_line(parentPath, gainRpmPh.Outport(1), diffPh.Inport(1));
-safe_add_line(parentPath, delayPh.Outport(1), diffPh.Inport(2));
-safe_add_line(parentPath, diffPh.Outport(1), gainPh.Inport(1));
-safe_add_line(parentPath, gainPh.Outport(1), sumPh.Inport(1));
-safe_add_line(parentPath, delayPh.Outport(1), sumPh.Inport(2));
-safe_add_line(parentPath, sumPh.Outport(1), delayPh.Inport(1));
-rpmLine = safe_add_line(parentPath, sumPh.Outport(1), dstPort);
-set_param(rpmLine, 'Name', 'rpm');
-end
-
-function sensorLines = get_sensor_lines(sensorBusPh)
-sensorLines = cell(4, 1);
-for k = 1:4
-    sensorLines{k} = get_param(sensorBusPh.Inport(k), 'Line');
-end
-end
-
-function set_line_name(lineHandle, name)
-if lineHandle ~= -1
-    set_param(lineHandle, 'Name', name);
-end
-end
-
-function set_open_loop_runtime_defaults(openLoopMode, openLoopIqRef)
-if ~openLoopMode
-    return;
-end
-
-if evalin('caller', 'exist(''Start'', ''var'')')
-    candidate = evalin('caller', 'Start');
-    if isa(candidate, 'Simulink.Parameter')
-        candidate.Value = true;
-        assignin('caller', 'Start', candidate);
-    else
-        assignin('caller', 'Start', true);
-    end
-else
-    assignin('caller', 'Start', true);
-end
-
-if evalin('caller', 'exist(''ctrl_mode'', ''var'')')
-    candidate = evalin('caller', 'ctrl_mode');
-    if isa(candidate, 'Simulink.Parameter')
-        candidate.Value = uint8(0);
-        assignin('caller', 'ctrl_mode', candidate);
-    else
-        assignin('caller', 'ctrl_mode', uint8(0));
-    end
-else
-    assignin('caller', 'ctrl_mode', uint8(0));
-end
-
-if evalin('caller', 'exist(''Id_ref'', ''var'')')
-    candidate = evalin('caller', 'Id_ref');
-    if isa(candidate, 'Simulink.Parameter')
-        candidate.Value = single(0);
-        assignin('caller', 'Id_ref', candidate);
-    else
-        assignin('caller', 'Id_ref', single(0));
-    end
-else
-    assignin('caller', 'Id_ref', single(0));
-end
-
-if evalin('caller', 'exist(''Iq_ref'', ''var'')')
-    candidate = evalin('caller', 'Iq_ref');
-    if isa(candidate, 'Simulink.Parameter')
-        candidate.Value = single(openLoopIqRef);
-        assignin('caller', 'Iq_ref', candidate);
-    else
-        assignin('caller', 'Iq_ref', single(openLoopIqRef));
-    end
-else
-    assignin('caller', 'Iq_ref', single(openLoopIqRef));
-end
-
-if evalin('caller', 'exist(''speed_ref'', ''var'')')
-    candidate = evalin('caller', 'speed_ref');
-    if isa(candidate, 'Simulink.Parameter')
-        candidate.Value = single(0);
-        assignin('caller', 'speed_ref', candidate);
-    else
-        assignin('caller', 'speed_ref', single(0));
-    end
-else
-    assignin('caller', 'speed_ref', single(0));
-end
-end
-
-function value = read_workspace_value(name, defaultValue)
-value = defaultValue;
-if evalin('caller', sprintf('exist(''%s'', ''var'')', name))
-    candidate = evalin('caller', name);
-    if isa(candidate, 'Simulink.Parameter')
-        value = candidate.Value;
-    else
-        value = candidate;
-    end
-end
-end
-
-function safe_delete_block(blockPath)
-if getSimulinkBlockHandle(blockPath) ~= -1
-    delete_block(blockPath);
-end
-end
-
-function safe_delete_line(parentPath, srcPort, dstPort)
-try
-    delete_line(parentPath, srcPort, dstPort);
 catch
-    % Line may already be absent on rerun; keep script idempotent.
-end
 end
 
-function lineHandle = safe_add_line(parentPath, srcPort, dstPort)
-safe_delete_line(parentPath, srcPort, dstPort);
-safe_clear_port(dstPort);
-lineHandle = add_line(parentPath, srcPort, dstPort, 'autorouting', 'on');
+add_line(parentPath, src, dst, 'autorouting', 'on');
 end
 
-function safe_clear_port(portHandle)
-try
-    lineHandle = get_param(portHandle, 'Line');
-    if lineHandle ~= -1
-        delete_line(lineHandle);
+function portNum = subsystem_port_number(subsystemPath, blockName, blockType)
+block = find_system(subsystemPath, 'SearchDepth', 1, 'BlockType', blockType, 'Name', blockName);
+if isempty(block)
+    error('apply_pmsm_controller_matlab_fix:MissingPortBlock', ...
+        'Could not find %s block ''%s'' under ''%s''.', blockType, blockName, subsystemPath);
+end
+
+portNum = str2double(get_param(block{1}, 'Port'));
+end
+
+function safe_delete_if_exists(parentPath, blockName)
+fullPath = [parentPath '/' blockName];
+if ~isempty(find_system(parentPath, 'SearchDepth', 1, 'Name', blockName))
+    try
+        delete_block(fullPath);
+    catch
     end
-catch
-    % Port may already be disconnected.
 end
 end
 
-function cleanup_models(modelNames)
-for k = 1:numel(modelNames)
-    name = modelNames{k};
-    if bdIsLoaded(name)
-        close_system(name, 0);
-    end
+function portHandle = local_port_handle(parentPath, endpoint, portType)
+tokens = regexp(endpoint, '^(.*)/(\d+)$', 'tokens', 'once');
+if isempty(tokens)
+    error('apply_pmsm_controller_matlab_fix:BadEndpoint', ...
+        'Endpoint must have block/port form: %s', endpoint);
+end
+
+blockPath = [parentPath '/' tokens{1}];
+portNum = str2double(tokens{2});
+portHandles = get_param(blockPath, 'PortHandles');
+
+switch portType
+    case 'Inport'
+        portHandle = portHandles.Inport(portNum);
+    case 'Outport'
+        portHandle = portHandles.Outport(portNum);
+    otherwise
+        error('apply_pmsm_controller_matlab_fix:BadPortType', ...
+            'Unsupported port type: %s', portType);
 end
 end

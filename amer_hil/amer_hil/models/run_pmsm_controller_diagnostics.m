@@ -24,7 +24,7 @@ phase_swap_bc.Value = logical(swapPhaseBC);
 open_loop_mode.Value = true;
 open_loop_iq_ref.Value = single(openLoopIqRef);
 
-apply_pmsm_controller_matlab_fix;
+apply_pmsm_controller_matlab_fix(true, true);
 run_pmsm_harness_sensor_alignment_check;
 
 disp('PMSM_CONTROLLER_DIAGNOSTICS_OK');
